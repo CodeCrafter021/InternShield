@@ -5,7 +5,7 @@ import axios from "axios";
 // component"). Point VITE_API_URL at your Spring Boot backend once it's
 // running, e.g. http://localhost:8080/api
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
+  baseURL: import.meta.env.VITE_API_URL || "https://internshield-production.up.railway.app/api",
   headers: { "Content-Type": "application/json" },
 });
 
