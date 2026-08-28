@@ -1,0 +1,117 @@
+.verify {
+  padding: 48px 24px 100px;
+  max-width: 720px;
+}
+
+.verify__scanning {
+  text-align: center;
+  padding: 64px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  border-radius: var(--radius-xl);
+}
+.verify__scanning h2 { font-size: 1.35rem; color: var(--text-primary); }
+.verify__scanning p { color: var(--text-secondary); font-size: 0.92rem; }
+
+.verify__empty {
+  text-align: center;
+  padding: 56px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  border-radius: var(--radius-xl);
+}
+
+.verify__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+  padding: 24px 28px;
+  border-radius: var(--radius-lg);
+}
+.verify__label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.verify__header h1 { font-size: 1.65rem; margin-top: 4px; color: #ffffff; }
+
+.verify__summary {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 0.95rem;
+  margin-bottom: 28px;
+}
+
+.verify__evidence-title { font-size: 1.1rem; margin-bottom: 16px; color: var(--text-primary); }
+.verify__evidence-list { margin-bottom: 22px; }
+
+.verify__timestamp {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-bottom: 30px;
+}
+
+.verify__actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .verify {
+    padding: 36px 16px 80px;
+  }
+
+  .verify__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .verify__scanning {
+    padding: 40px 20px;
+  }
+
+  .verify__empty {
+    padding: 36px 20px;
+  }
+}
+
+/* ── Small mobile ── */
+@media (max-width: 480px) {
+  .verify {
+    padding: 28px 12px 60px;
+  }
+
+  .verify__header h1 {
+    font-size: 1.25rem;
+  }
+
+  .verify__summary {
+    font-size: 0.9rem;
+  }
+
+  .verify__actions {
+    flex-direction: column;
+  }
+
+  .verify__actions .glass-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .verify__scanning {
+    padding: 30px 16px;
+  }
+
+  .verify__scanning h2 {
+    font-size: 1.1rem;
+  }
+
+  .verify__timestamp {
+    font-size: 0.72rem;
+  }
+}
