@@ -35,6 +35,22 @@ public class CompanyController
     public List<Company> getAllCompanies() {
         return companyRepository.findAll();
     }
+    @GetMapping("/search")
+    public ResponseEntity<?> searchCompanies(@RequestParam String query) {
+        List<Company> results = companyRepository.findByCompanyNameContainingIgnoreCase(query);
+        return ResponseEntity.ok(results);
+    }
+    
+    @PostMapping("/{id}/verify")
+    public ResponseEntity<?> verifyById(@PathVariable Long id) {
+        return companyRepository.findById(id).map(company -> {
+            long reportCount = scamReportRepository.countByCompanyId(id);
+            if (reportCount >= 5) company.setSafetyStatus("Red");
+            else if (reportCount >= 1) company.setSafetyStatus("Yellow");
+            else company.setSafetyStatus("Green");
+            return ResponseEntity.ok(companyRepository.save(company));
+        }).orElse(ResponseEntity.notFound().build());
+    }
 
     // Verify a company by name (Endpoint: /api/companies/verify?name=Google)
     @GetMapping("/verify")
