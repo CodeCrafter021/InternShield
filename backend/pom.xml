@@ -39,7 +39,31 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         
-        <!-- Sirf ek baar PostgreSQL dependency rahegi -->
+        <!-- Selenium -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.18.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- WebDriverManager (automatic driver setup) -->
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>5.7.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit 5 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!--PostgreSQL dependency rahegi -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
