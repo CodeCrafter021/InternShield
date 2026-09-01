@@ -20,9 +20,10 @@ public class InternShieldSeleniumTest {
     static void setup() {
         WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage");
         driver = new ChromeDriver(options);
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-        driver.manage().window().maximize();
+        driver.manage().window().setSize(new Dimension(1280, 900));
     }
 
     @Test
@@ -97,8 +98,8 @@ public class InternShieldSeleniumTest {
         );
         Thread.sleep(2000);
 
-        // Ab scanner pe jao
-        driver.get(BASE_URL + "/scanner");
+        // Ab dashboard ke company scanner pe jao
+        driver.get(BASE_URL + "/dashboard");
         WebElement searchBox = wait.until(
             ExpectedConditions.presenceOfElementLocated(By.tagName("input"))
         );
