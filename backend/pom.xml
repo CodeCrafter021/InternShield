@@ -83,7 +83,7 @@
             <scope>test</scope>
         </dependency>
         
-        <!--PostgreSQL dependency rahegi -->
+        <!--PostgreSQL dependency-->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
