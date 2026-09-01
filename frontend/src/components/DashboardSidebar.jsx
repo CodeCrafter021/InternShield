@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   LayoutGrid,
-  Banknote,
   HelpCircle,
   User,
   Settings,
@@ -41,21 +40,17 @@ export default function DashboardSidebar({
 
   const avatarEmoji = (user?.avatarId && AVATAR_EMOJIS[user.avatarId]) || "🛡️";
 
-  // Streamlined Navigation Menu according to reference screenshot:
-  // Excluded: Campaigns, Brand Interaction, Growth Tools, Plans, Contracts
-  // Included: Dashboard, Transactions, Help/Support, Profile, Settings
+  // Streamlined Navigation Menu:
+  // Included: Dashboard, Help/Support, Profile, Settings
   const MENU_ITEMS = [
     { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
-    { id: "transactions", label: "Transactions", icon: Banknote },
     { id: "help", label: "Help/Support", icon: HelpCircle },
     { id: "profile", label: "Profile", icon: User },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
   function isItemActive(itemId) {
-    if (activeView === itemId) return true;
-    if (itemId === "transactions" && activeView === "history") return true;
-    return false;
+    return activeView === itemId;
   }
 
   return (

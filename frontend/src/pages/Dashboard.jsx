@@ -53,7 +53,7 @@ export default function Dashboard() {
   const [activeView, setActiveView] = useState(() => {
     const params = new URLSearchParams(location.search);
     const viewParam = params.get("view") || params.get("tab");
-    if (viewParam) return viewParam;
+    if (viewParam && viewParam !== "transactions" && viewParam !== "history") return viewParam;
     return "dashboard";
   });
 
@@ -701,70 +701,6 @@ export default function Dashboard() {
                       <span className="alert-reporter">Verified Reporter: {alt.reporter}</span>
                     </div>
                   ))}
-                </div>
-              </motion.div>
-            )}
-
-            {/* ═════════════════════════════════════════════════════════
-                2. TRANSACTIONS & AUDIT RECORDS VIEW
-               ═════════════════════════════════════════════════════════ */}
-            {(activeView === "transactions" || activeView === "history") && (
-              <motion.div
-                key="view-transactions"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
-                className="portal-view"
-              >
-                <div className="portal-header">
-                  <div className="dashboard__status-pill glass-pill">
-                    <Clock size={14} color="#38bdf8" />
-                    <span>Audit Trail & Activity Log</span>
-                  </div>
-                  <h2>Transactions & Verification History</h2>
-                  <p>Cryptographic audit records of all company verifications and offer scans completed by your account.</p>
-                </div>
-
-                <div className="glass-card recent-checks" style={{ marginTop: 24 }}>
-                  <div className="recent-checks__table-wrap">
-                    <table className="recent-checks__table">
-                      <thead>
-                        <tr>
-                          <th>Company</th>
-                          <th>Domain</th>
-                          <th>Safety Score</th>
-                          <th>Status</th>
-                          <th>Timestamp</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredRecent.map((c) => (
-                          <tr key={c.id}>
-                            <td><strong>{c.name}</strong></td>
-                            <td><code className="table-domain">{c.domain}</code></td>
-                            <td><strong>{c.score}/100</strong></td>
-                            <td>
-                              <span className={`risk-badge risk-badge--${(c.risk || "low").toLowerCase()}`}>
-                                {c.risk}
-                              </span>
-                            </td>
-                            <td>{c.date}</td>
-                            <td>
-                              <LiquidButton
-                                variant="ghost"
-                                size="sm"
-                                showArrow={false}
-                                onClick={() => navigate(`/verify/${c.id}`)}
-                              >
-                                View Dossier
-                              </LiquidButton>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               </motion.div>
             )}

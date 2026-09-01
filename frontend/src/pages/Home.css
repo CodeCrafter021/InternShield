@@ -778,9 +778,6 @@
 .hero-banner__inner::before {
   display: none !important;
 }
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  pointer-events: none;
-}
 
 .hero-banner__inner:hover {
   border-color: var(--glass-border-hover);

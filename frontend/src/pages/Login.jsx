@@ -1,14 +1,8 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ShieldCheck,
-  CheckCircle2,
-  Lock,
-  Zap,
-  AlertTriangle,
-  Sparkles,
-  ShieldAlert,
 } from "lucide-react";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
 import LiquidAuthCard from "../components/LiquidAuthCard.jsx";
@@ -50,60 +44,7 @@ export default function Login() {
             Sign in to scan offer letters, verify hiring companies against 2,400+ known threat heuristics, and keep your personal data secure.
           </p>
 
-          {/* Live Student Threat & Protection Matrix */}
-          <div className="auth-live-feed glass-card">
-            <div className="auth-feed-header">
-              <span className="auth-feed-title">
-                <Sparkles size={14} color="#38bdf8" />
-                <span>Live Student Security Matrix</span>
-              </span>
-              <span className="auth-feed-counter">34,000+ Protected</span>
-            </div>
 
-            <div className="auth-feed-items">
-              <div className="auth-feed-item auth-feed-item--safe">
-                <CheckCircle2 size={15} color="#22c55e" className="feed-icon" />
-                <div>
-                  <strong>Google Summer Analyst '26</strong>
-                  <span>Cryptographic signature passed • 0 risk</span>
-                </div>
-              </div>
-
-              <div className="auth-feed-item auth-feed-item--threat">
-                <AlertTriangle size={15} color="#f43f5e" className="feed-icon" />
-                <div>
-                  <strong>Advance ₹15k Training Fee Scam</strong>
-                  <span>Flagged clause: upfront payment requested (Blocked)</span>
-                </div>
-              </div>
-
-              <div className="auth-feed-item auth-feed-item--safe">
-                <Zap size={15} color="#38bdf8" className="feed-icon" />
-                <div>
-                  <strong>TCS Digital Offer Validation</strong>
-                  <span>Matched registered domain MX & MCA records</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Key Metrics Strip */}
-          <div className="auth-stats glass-pill">
-            <div className="auth-stat">
-              <strong>98/100</strong>
-              <span>Trust engine</span>
-            </div>
-            <div className="auth-stats__divider" />
-            <div className="auth-stat">
-              <strong>&lt;10 sec</strong>
-              <span>Scan Target</span>
-            </div>
-            <div className="auth-stats__divider" />
-            <div className="auth-stat">
-              <strong>Privacy-first</strong>
-              <span>Student control</span>
-            </div>
-          </div>
         </motion.div>
 
         {/* Right: Unified Morphing Liquid Auth Card */}

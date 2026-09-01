@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from "framer-motion";
-import { ShieldCheck, Menu, X, Sparkles, Activity } from "lucide-react";
+import { motion } from "framer-motion";
+import { ShieldCheck, Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import LiquidButton from "./LiquidButton.jsx";
 import "./Navbar.css";
 
 /**
- * Navbar — Apple iOS 26 Floating Dynamic Island Header
- * Expands, contracts, and morphs with organic fluid springs on scroll and state changes.
+ * Navbar — Floating Modern Glass Header
  */
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -87,22 +86,6 @@ export default function Navbar() {
           <ShieldCheck size={20} strokeWidth={2.2} />
         </motion.div>
         <span className="dynamic-island__brand-name">InternShield</span>
-
-        {/* Live Status Pill when scrolled (Dynamic Island Feature) */}
-        <AnimatePresence>
-          {isScrolled && (
-            <motion.span
-              className="dynamic-island__status-pill"
-              initial={{ opacity: 0, scale: 0.8, x: -8 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.8, x: -8 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <span className="dynamic-island__status-dot" />
-              <span>Shield Active</span>
-            </motion.span>
-          )}
-        </AnimatePresence>
       </Link>
 
       {/* Nav Links with Fluid Active Pill Indicator */}

@@ -1,43 +1,23 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ShieldCheck,
   Heart,
-  ExternalLink,
-  Send,
-  CheckCircle2,
   Lock,
-  Zap,
-  Globe,
-  Sparkles,
 } from "lucide-react";
-import LiquidButton from "./LiquidButton.jsx";
 import "./Footer.css";
 
 /**
  * Footer — Ultra-Attractive Apple iOS 26 Liquid Glass Footer
  * Features:
  * - Full-width wide container with multi-layer SVG viscous liquid waves
- * - Newsletter subscription capsule for real-time threat bulletins
  * - Trust feature badges (256-bit encrypted, zero logs, open intelligence)
  * - 4 organized navigation columns
  * - Perfectly centered, glossy social liquid pills
  * - Refined legal and status bar
  */
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-
-  function handleSubscribe(e) {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setSubscribed(true);
-    setTimeout(() => {
-      setEmail("");
-    }, 2000);
-  }
-
   return (
     <footer className="liquid-footer">
       {/* ── Multi-Layer SVG Liquid Wave Transition ── */}
@@ -84,37 +64,6 @@ export default function Footer() {
       </div>
 
       <div className="liquid-footer__inner">
-        {/* ── Top Newsletter & Threat Bulletin Banner ── */}
-        <div className="liquid-footer__newsletter glass-card">
-          <div className="newsletter-info">
-            <div className="newsletter-badge glass-pill">
-              <Sparkles size={14} color="var(--color-accent)" />
-              <span>Zero-Day Student Scam Bulletins</span>
-            </div>
-            <h3>Stay protected from emerging internship fraud</h3>
-            <p>Get instant email alerts whenever new recruiter phishing campaigns target universities.</p>
-          </div>
-
-          <form onSubmit={handleSubscribe} className="newsletter-form glass">
-            <input
-              type="email"
-              placeholder="Enter your student email (.edu, .ac.in)..."
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <LiquidButton
-              type="submit"
-              variant="cyan"
-              size="sm"
-              showArrow={false}
-              icon={subscribed ? CheckCircle2 : Send}
-            >
-              {subscribed ? "Subscribed!" : "Subscribe Alerts"}
-            </LiquidButton>
-          </form>
-        </div>
-
         {/* ── Main 4-Column Grid ── */}
         <div className="liquid-footer__grid">
           {/* Brand Column */}
@@ -127,7 +76,13 @@ export default function Footer() {
               >
                 <ShieldCheck size={24} strokeWidth={2.2} />
               </motion.div>
-              <span className="liquid-footer__brand-title">InternShield</span>
+              <div className="liquid-footer__brand-text">
+                <span className="liquid-footer__brand-title">InternShield</span>
+                <div className="liquid-footer__brand-sub">
+                  <Lock size={12} color="#38bdf8" />
+                  <span>Zero Private Data Retention</span>
+                </div>
+              </div>
             </Link>
 
             <p className="liquid-footer__tagline">
@@ -137,17 +92,6 @@ export default function Footer() {
             <div className="liquid-footer__status-badge glass-pill">
               <span className="liquid-footer__status-dot" />
               <span>AI Threat Engine v2.6 • Active Protection</span>
-            </div>
-
-            <div className="liquid-footer__trust-metrics">
-              <div className="trust-metric-item">
-                <Lock size={14} color="#38bdf8" />
-                <span>Zero Private Data Retention</span>
-              </div>
-              <div className="trust-metric-item">
-                <Globe size={14} color="#4ade80" />
-                <span>34,000+ Students Protected</span>
-              </div>
             </div>
           </div>
 
