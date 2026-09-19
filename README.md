@@ -6,6 +6,19 @@ The platform combines company verification, offer-letter analysis, student repor
 
 Live Demo: https://intern-shield-blue.vercel.app/
 
+## Privacy & Data Protection
+
+InternShield is built with a privacy-first approach. The platform is designed to help students verify internship opportunities without forcing them to expose sensitive personal data unnecessarily.
+
+Key privacy principle:
+
+- No user personal data is permanently stored in the backend for routine verification workflows.
+- The application focuses on company and offer-risk analysis rather than collecting unnecessary student information.
+- Verification is meant to be fast, safe, and respectful of user privacy.
+- Sensitive details such as personal contact information, offer documents, or internal communication data are handled with caution and are not intended to be stored as part of the core trust-checking system.
+
+This keeps the platform student-friendly, secure, and aligned with ethical data practices.
+
 ## Why InternShield?
 
 Students often receive internship offers that look legitimate but are actually fraudulent. These offers may:
@@ -76,6 +89,8 @@ Students can contribute to a wider trust network by reporting suspicious compani
 
 ### 5. Privacy-Focused Experience
 InternShield emphasizes transparency and user safety. It allows students to verify offers before sharing sensitive personal information or making financial commitments.
+
+The platform does not aim to store unnecessary user data in the backend. Instead, it prioritizes lightweight verification and evidence-based analysis while protecting student privacy.
 
 ## How It Works
 
