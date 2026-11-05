@@ -100,10 +100,10 @@ export default function Footer() {
             <h4>Platform</h4>
             <ul>
               <li><Link to="/">Home Overview</Link></li>
+              <li><Link to="/how-it-works">How It Works</Link></li>
               <li><Link to="/about">About Mission</Link></li>
               <li><Link to="/dashboard">Security Dashboard</Link></li>
               <li><Link to="/login">Sign In / Register</Link></li>
-              <li><Link to="/register">Create Student Account</Link></li>
             </ul>
           </div>
 

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ScanSearch } from "lucide-react";
+import { ScanSearch, Download, RefreshCw, ArrowLeft } from "lucide-react";
 import Navbar from "../components/Navbar.jsx";
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
 import RiskBadge from "../components/RiskBadge.jsx";
 import EvidenceCard from "../components/EvidenceCard.jsx";
 import GlassButton from "../components/GlassButton.jsx";
+import SafetyCertificateModal from "../components/SafetyCertificateModal.jsx";
 import { getCompanyById, runCheck } from "../services/verificationService.js";
 import "./VerificationResult.css";
 
@@ -16,18 +17,21 @@ export default function VerificationResult() {
 
   const [status, setStatus] = useState("loading"); // loading -> scanning -> done
   const [result, setResult] = useState(null);
+  const [company, setCompany] = useState(null);
+  const [showCert, setShowCert] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const company = await getCompanyById(companyId);
-      if (!company) {
+      const comp = await getCompanyById(companyId);
+      if (!comp) {
         setStatus("not-found");
         return;
       }
+      setCompany(comp);
       setStatus("scanning");
-      const data = await runCheck(company);
+      const data = await runCheck(comp);
       if (!cancelled) {
         setResult(data);
         setStatus("done");
@@ -35,7 +39,9 @@ export default function VerificationResult() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [companyId]);
 
   return (
@@ -67,7 +73,11 @@ export default function VerificationResult() {
         )}
 
         {status === "done" && result && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             <div className="verify__header glass-card">
               <div>
                 <span className="verify__label">Verification result for</span>
@@ -90,16 +100,41 @@ export default function VerificationResult() {
             </p>
 
             <div className="verify__actions">
-              <GlassButton variant="solid" showArrow={false} onClick={() => navigate("/dashboard")}>
+              <GlassButton
+                variant="solid"
+                showArrow={false}
+                onClick={() => setShowCert(true)}
+              >
+                Download Safety Dossier (PDF)
+              </GlassButton>
+              <GlassButton
+                variant="ghost"
+                showArrow={false}
+                onClick={() => navigate("/dashboard")}
+              >
                 Back to dashboard
               </GlassButton>
-              <GlassButton variant="ghost" showArrow={false} onClick={() => window.location.reload()}>
+              <GlassButton
+                variant="ghost"
+                showArrow={false}
+                onClick={() => window.location.reload()}
+              >
                 Re-run check
               </GlassButton>
             </div>
           </motion.div>
         )}
       </div>
+
+      {/* Verifiable Safety Certificate & PDF Print Modal */}
+      {showCert && (
+        <SafetyCertificateModal
+          company={company}
+          result={result}
+          onClose={() => setShowCert(false)}
+        />
+      )}
     </div>
   );
 }
+

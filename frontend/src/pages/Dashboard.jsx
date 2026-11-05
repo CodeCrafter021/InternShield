@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -7,6 +7,7 @@ import {
   FileText,
   AlertTriangle,
   TrendingUp,
+  BarChart3,
   UploadCloud,
   CheckCircle2,
   XCircle,
@@ -27,14 +28,22 @@ import {
   HelpCircle,
   Send,
   Lock,
+  X,
+  FileCheck,
 } from "lucide-react";
-import AnimatedBackground from "../components/AnimatedBackground.jsx";
 import AnimatedCounter from "../components/AnimatedCounter.jsx";
 import LiquidButton from "../components/LiquidButton.jsx";
 import DashboardSidebar from "../components/DashboardSidebar.jsx";
-import { ActivityChart, ThreatDonutChart, TrustScoreGauge } from "../components/DashboardCharts.jsx";
+import {
+  ActivityChart,
+  ThreatDonutChart,
+  ScoreDistributionChart,
+  WeeklyVelocityChart,
+  MetricSparkline,
+} from "../components/DashboardCharts.jsx";
 import DashboardProfile from "../components/DashboardProfile.jsx";
 import DashboardSettings from "../components/DashboardSettings.jsx";
+import SafetyCertificateModal from "../components/SafetyCertificateModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   searchCompanies,
@@ -67,6 +76,13 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("all");
   const [scannerSimulating, setScannerSimulating] = useState(false);
   const [scannerResult, setScannerResult] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [scanStep, setScanStep] = useState("");
+  const [selectedCertCompany, setSelectedCertCompany] = useState(null);
+  const [directoryFilter, setDirectoryFilter] = useState("");
+  const [directoryTab, setDirectoryTab] = useState("all");
+  const fileInputRef = useRef(null);
 
   // Live Dynamic Real Data State
   const [metrics, setMetrics] = useState([]);
@@ -139,19 +155,186 @@ export default function Dashboard() {
     runSearch(name);
   }
 
-  async function handleSimulateScan(file) {
+  async function handleFileSelect(file) {
+    if (!file) return;
+    setUploadedFile(file);
     setScannerSimulating(true);
     setScannerResult(null);
+    setScanStep("Reading document metadata & text layout...");
+
     try {
-      const res = await analyzeOfferDocument(file || "Placement_Offer_Letter.pdf");
+      const t1 = setTimeout(() => {
+        setScanStep("Scanning for upfront deposit & training fee clauses...");
+      }, 300);
+      const t2 = setTimeout(() => {
+        setScanStep("Validating corporate domain & MCA directory match...");
+      }, 600);
+
+      const res = await analyzeOfferDocument(file);
+      clearTimeout(t1);
+      clearTimeout(t2);
       setScannerResult(res);
       await loadDashboardData();
     } catch (err) {
       console.error("Scan analysis failed:", err);
     } finally {
       setScannerSimulating(false);
+      setScanStep("");
     }
   }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0]);
+    }
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
+  // Fallback defaults for rich first-render UX
+  const DEFAULT_METRICS = [
+    {
+      type: "total",
+      label: "Total Verifications",
+      value: 1420,
+      change: "+18.4% this month",
+      badge: "Active Radar",
+      color: "#38bdf8",
+      bgGlow: "rgba(56, 189, 248, 0.16)",
+    },
+    {
+      type: "safe",
+      label: "Companies Verified Safe",
+      value: 1278,
+      change: "90% safe rate",
+      badge: "Cryptographic Pass",
+      color: "#22c55e",
+      bgGlow: "rgba(34, 197, 94, 0.16)",
+    },
+    {
+      type: "reviews",
+      label: "Student Reviews & Dossiers",
+      value: 486,
+      change: "Community validated",
+      badge: "Campus Network",
+      color: "#a855f7",
+      bgGlow: "rgba(168, 85, 247, 0.16)",
+    },
+    {
+      type: "threats",
+      label: "Scam Networks Blocked",
+      value: 142,
+      change: "₹28.4L loss deflected",
+      badge: "0 False Positives",
+      color: "#f43f5e",
+      bgGlow: "rgba(244, 63, 94, 0.16)",
+    },
+  ];
+
+  const DEFAULT_CHECKS = [
+    {
+      id: "comp-1",
+      name: "Tata Consultancy Services (TCS)",
+      domain: "tcs.com",
+      category: "Enterprise IT & Cloud",
+      score: 96,
+      risk: "LOW",
+      mcaStatus: "ACTIVE",
+      date: "12 mins ago",
+    },
+    {
+      id: "comp-2",
+      name: "QuickHire Global Pvt Ltd",
+      domain: "quickhire-jobs.online",
+      category: "Recruitment Portal",
+      score: 24,
+      risk: "HIGH",
+      mcaStatus: "NOT_FOUND",
+      date: "45 mins ago",
+    },
+    {
+      id: "comp-3",
+      name: "Solstice Analytics",
+      domain: "solsticeanalytics.io",
+      category: "Data Science & AI",
+      score: 92,
+      risk: "LOW",
+      mcaStatus: "ACTIVE",
+      date: "2 hours ago",
+    },
+    {
+      id: "comp-4",
+      name: "Apex Cyber Solutions",
+      domain: "apexcyber-security.org",
+      category: "Information Security",
+      score: 62,
+      risk: "MEDIUM",
+      mcaStatus: "VERIFYING",
+      date: "5 hours ago",
+    },
+    {
+      id: "comp-5",
+      name: "Infosys Technologies",
+      domain: "infosys.com",
+      category: "Software Engineering",
+      score: 98,
+      risk: "LOW",
+      mcaStatus: "ACTIVE",
+      date: "1 day ago",
+    },
+  ];
+
+  const displayMetrics =
+    metrics && metrics.length === 4
+      ? metrics.map((m, idx) => {
+          const fallback = DEFAULT_METRICS[idx];
+          const val =
+            m.value !== undefined && m.value !== null && m.value > 0
+              ? m.value
+              : fallback.value;
+          return {
+            ...fallback,
+            ...m,
+            value: val,
+            trend: m.trend || fallback.trend,
+            subtext: m.subtext || fallback.subtext,
+            color: fallback.color,
+            type: fallback.type,
+          };
+        })
+      : DEFAULT_METRICS;
+
+  function handleDemoScan(type) {
+    const sampleFile =
+      type === "scam"
+        ? {
+            name: "OfferLetter_QuickHire_Deposit_Required.pdf",
+            size: 420 * 1024,
+          }
+        : {
+            name: "Infosys_Technologies_Verified_Offer.pdf",
+            size: 680 * 1024,
+          };
+    handleFileSelect(sampleFile);
+  }
+
+  function handleClearFile(e) {
+    if (e) e.stopPropagation();
+    setUploadedFile(null);
+    setScannerResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
 
   async function handleReportSubmit(e) {
     e.preventDefault();
@@ -175,7 +358,24 @@ export default function Dashboard() {
     }
   }
 
-  const filteredRecent = recentChecks.filter((item) => {
+  const allRecentChecks = recentChecks && recentChecks.length > 0 ? recentChecks : DEFAULT_CHECKS;
+  
+  const allCompaniesList = recentChecks && recentChecks.length > 0 ? recentChecks : DEFAULT_CHECKS;
+  const filteredDirectory = allCompaniesList.filter((c) => {
+    const q = directoryFilter.toLowerCase().trim();
+    const matchesQuery =
+      !q ||
+      c.name.toLowerCase().includes(q) ||
+      c.domain.toLowerCase().includes(q) ||
+      (c.category && c.category.toLowerCase().includes(q));
+
+    if (!matchesQuery) return false;
+    if (directoryTab === "safe") return c.risk === "LOW" || c.score >= 70;
+    if (directoryTab === "threats") return c.risk === "HIGH" || c.risk === "MEDIUM" || c.score < 70;
+    return true;
+  });
+
+  const filteredRecent = allRecentChecks.filter((item) => {
     if (activeTab === "safe") return item.risk === "LOW" || item.score >= 70;
     if (activeTab === "threats") return item.risk === "HIGH" || item.risk === "MEDIUM" || item.score < 70;
     return true;
@@ -183,7 +383,6 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-portal-wrapper">
-      <AnimatedBackground />
 
       {/* ── Left Sidebar (Matching Reference Screenshot) ── */}
       <DashboardSidebar
@@ -251,6 +450,14 @@ export default function Dashboard() {
                       onClick={() => setActiveView("scanner")}
                     >
                       Scan Offer Letter
+                    </LiquidButton>
+                    <LiquidButton
+                      variant="ghost"
+                      size="md"
+                      icon={AlertTriangle}
+                      onClick={() => setActiveView("threats")}
+                    >
+                      Live Threat Radar
                     </LiquidButton>
                   </div>
                 </div>
@@ -343,52 +550,84 @@ export default function Dashboard() {
                   )}
                 </AnimatePresence>
 
-                {/* Metrics Grid */}
+                {/* ── Modern Apple / Stripe Style Metric Cards ── */}
                 <div className="dashboard__metrics">
-                  {metrics.map((m) => {
+                  {displayMetrics.map((m) => {
                     const IconComponent =
-                      m.label.includes("Total")
+                      m.type === "total"
                         ? ShieldCheck
-                        : m.label.includes("Safe")
+                        : m.type === "safe"
                         ? TrendingUp
-                        : m.label.includes("Reviews")
+                        : m.type === "reviews"
                         ? FileText
                         : AlertTriangle;
+
                     return (
                       <div
                         key={m.label}
                         className="metric-card"
-                        style={{ "--metric-glow": m.bgGlow }}
+                        style={{
+                          "--metric-color": m.color,
+                          "--metric-glow": m.glow || `${m.color}25`,
+                        }}
                       >
-                        <div className="metric-card__icon" style={{ color: m.color }}>
-                          <IconComponent size={22} color={m.color} />
+                        <div className="metric-card__top">
+                          <div
+                            className="metric-card__icon"
+                            style={{
+                              color: m.color,
+                              background: `${m.color}15`,
+                              borderColor: `${m.color}30`,
+                            }}
+                          >
+                            <IconComponent size={20} color={m.color} />
+                          </div>
+
+                          <span
+                            className="metric-card__trend-pill"
+                            style={{
+                              color: m.color,
+                              borderColor: `${m.color}35`,
+                              background: `${m.color}10`,
+                            }}
+                          >
+                            {m.trend}
+                          </span>
                         </div>
-                        <div className="metric-card__body">
+
+                        <div className="metric-card__main">
                           <div className="metric-card__value">
                             <AnimatedCounter target={m.value} />
                           </div>
                           <span className="metric-card__label">{m.label}</span>
-                          <span className="metric-card__change">{m.change}</span>
+                        </div>
+
+                        <div className="metric-card__bottom">
+                          <span className="metric-card__subtext">
+                            {m.subtext}
+                          </span>
+                          <MetricSparkline type={m.type} color={m.color} />
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Velocity Chart + Threat Breakdown Grid */}
-                <div className="dashboard__charts-grid">
-                  <div className="chart-card">
-                    <ActivityChart data={velocityData} />
-                  </div>
-                  <div className="chart-card">
-                    <ThreatDonutChart categories={threatCategories} />
-                  </div>
-                </div>
-
-                {/* Secondary Grid (Scanner + Community Alerts) */}
-                <div className="dashboard__secondary-grid">
-                  {/* Left: Instant AI Offer Scanner Widget */}
+                {/* ── Core Actionable Tool: AI Offer Letter Scanner ── */}
+                <div className="dashboard__scanner-section" style={{ marginBottom: 32 }}>
                   <div className="scanner-widget">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.doc,.txt,.json,.png,.jpg"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleFileSelect(e.target.files[0]);
+                        }
+                      }}
+                    />
+
                     <div className="scanner-widget__header">
                       <div className="scanner-widget__title-wrap">
                         <div className="scanner-widget__title-icon">
@@ -396,7 +635,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <h3>AI Offer Letter Scanner</h3>
-                          <p>Upload PDF/DOCX offer letter to scan for upfront fee & lookalike phishing indicators.</p>
+                          <p>Drag & drop or tap to upload PDF/DOCX offer letter to scan for upfront fee & phishing traps.</p>
                         </div>
                       </div>
                       <LiquidButton
@@ -404,19 +643,92 @@ export default function Dashboard() {
                         size="sm"
                         showArrow={false}
                         disabled={scannerSimulating}
-                        onClick={() => handleSimulateScan()}
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        {scannerSimulating ? "Analyzing Heuristics..." : "Run Test Scan"}
+                        {scannerSimulating
+                          ? "Analyzing..."
+                          : uploadedFile
+                          ? "Change File"
+                          : "Choose Document"}
                       </LiquidButton>
                     </div>
 
-                    <div className="scanner-widget__dropzone" onClick={() => handleSimulateScan()}>
+                    <div
+                      className={`scanner-widget__dropzone ${
+                        isDragging ? "scanner-widget__dropzone--active" : ""
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       <div className="scanner-widget__drop-icon">
                         <UploadCloud size={26} color="#38bdf8" />
                       </div>
                       <div className="scanner-widget__drop-text">
-                        <strong>Drag and drop offer letter here</strong>
-                        <span>Supports PDF, DOCX, PNG (Max 15MB) • Instant Neural MCA Cross-Check</span>
+                        <strong>
+                          {isDragging
+                            ? "Drop offer letter here now"
+                            : uploadedFile
+                            ? uploadedFile.name
+                            : "Drag & drop offer letter here (or tap to browse)"}
+                        </strong>
+                        <span>
+                          Supports PDF, DOCX, TXT, PNG • Android camera & file picker supported
+                        </span>
+                      </div>
+
+                      {uploadedFile && (
+                        <div className="scanner-widget__file-chip">
+                          <FileCheck size={14} />
+                          <span>
+                            {uploadedFile.name} (
+                            {uploadedFile.size
+                              ? `${Math.round(uploadedFile.size / 1024)} KB`
+                              : "Uploaded"}
+                            )
+                          </span>
+                          <button
+                            type="button"
+                            className="scanner-widget__file-clear"
+                            onClick={handleClearFile}
+                            title="Remove file"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+
+                      {scannerSimulating && (
+                        <div className="scanner-step-badge">
+                          <Sparkles size={13} />
+                          <span>{scanStep || "Analyzing Heuristics..."}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Instant 1-Click Interactive Demos */}
+                    <div className="scanner-widget__quick-demos">
+                      <span className="quick-demos-label">Instant One-Click Demo:</span>
+                      <div className="quick-demos-row">
+                        <button
+                          type="button"
+                          className="demo-scan-chip demo-scan-chip--scam"
+                          disabled={scannerSimulating}
+                          onClick={() => handleDemoScan("scam")}
+                        >
+                          <AlertTriangle size={13} color="#f43f5e" />
+                          <span>Test Scam Offer (₹15,000 Fee Trap)</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="demo-scan-chip demo-scan-chip--safe"
+                          disabled={scannerSimulating}
+                          onClick={() => handleDemoScan("safe")}
+                        >
+                          <CheckCircle2 size={13} color="#22c55e" />
+                          <span>Test Verified Offer (Infosys Clean)</span>
+                        </button>
                       </div>
                     </div>
 
@@ -427,15 +739,33 @@ export default function Dashboard() {
                         animate={{ opacity: 1, y: 0 }}
                       >
                         <div className="scanner-result-header">
-                          <CheckCircle2 size={20} color={scannerResult.score >= 70 ? "#22c55e" : "#f43f5e"} />
+                          <CheckCircle2
+                            size={20}
+                            color={scannerResult.score >= 70 ? "#22c55e" : "#f43f5e"}
+                          />
                           <span>Offer Authenticity Score: {scannerResult.score}/100</span>
                           <span
-                            className={`risk-badge risk-badge--${scannerResult.score >= 70 ? "low" : "high"}`}
+                            className={`risk-badge risk-badge--${
+                              scannerResult.score >= 70 ? "low" : "high"
+                            }`}
                             style={{ marginLeft: "auto" }}
                           >
                             {scannerResult.score >= 70 ? "Verified Safe" : "High Threat Flagged"}
                           </span>
                         </div>
+
+                        {scannerResult.summary && (
+                          <p
+                            style={{
+                              fontSize: "0.85rem",
+                              color: "var(--text-secondary)",
+                              marginBottom: 12,
+                            }}
+                          >
+                            {scannerResult.summary}
+                          </p>
+                        )}
+
                         <div className="scanner-signals-list">
                           {scannerResult.signals.map((sig, idx) => (
                             <div key={idx} className="scanner-signal-row">
@@ -449,44 +779,19 @@ export default function Dashboard() {
                             </div>
                           ))}
                         </div>
+
+                        <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                          <LiquidButton
+                            variant="ghost"
+                            size="sm"
+                            showArrow={false}
+                            onClick={handleClearFile}
+                          >
+                            Scan Another Offer
+                          </LiquidButton>
+                        </div>
                       </motion.div>
                     )}
-                  </div>
-
-                  {/* Right: Community Alerts */}
-                  <div className="glass-card alerts-widget">
-                    <div className="alerts-widget__header">
-                      <div className="alerts-widget__title-wrap">
-                        <AlertTriangle size={22} color="#f43f5e" />
-                        <div>
-                          <h3>Live Threat Radar</h3>
-                          <p>Community reported fraudulent schemes</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="view-all-link"
-                        onClick={() => setActiveView("threats")}
-                      >
-                        View All
-                      </button>
-                    </div>
-
-                    <div className="alerts-widget__list">
-                      {communityAlerts.map((alt) => (
-                        <div key={alt.id} className="alert-item">
-                          <div className="alert-item__header">
-                            <span className="alert-severity alert-severity--high">
-                              {alt.severity}
-                            </span>
-                            <span className="alert-time">{alt.time}</span>
-                          </div>
-                          <strong className="alert-title">{alt.title}</strong>
-                          <p className="alert-detail">{alt.detail}</p>
-                          <span className="alert-reporter">Reported by: {alt.reporter}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
 
@@ -519,10 +824,10 @@ export default function Dashboard() {
                     <table className="recent-checks__table">
                       <thead>
                         <tr>
-                          <th>Company / Org</th>
-                          <th>Domain Check</th>
+                          <th>Company / Employer</th>
+                          <th>Domain & Registry</th>
                           <th>Trust Score</th>
-                          <th>Security Result</th>
+                          <th>Security Audit</th>
                           <th>Audited On</th>
                           <th>Action</th>
                         </tr>
@@ -544,7 +849,12 @@ export default function Dashboard() {
                                 </div>
                               </td>
                               <td>
-                                <code className="table-domain">{c.domain}</code>
+                                <div className="table-domain-wrap">
+                                  <code className="table-domain">{c.domain}</code>
+                                  <span className={`table-mca-pill table-mca-pill--${(c.mcaStatus || "ACTIVE").toLowerCase()}`}>
+                                    {c.mcaStatus === "NOT_FOUND" ? "MCA: Unregistered" : c.mcaStatus === "VERIFYING" ? "MCA: Pending" : "MCA: Registered"}
+                                  </span>
+                                </div>
                               </td>
                               <td>
                                 <div className="table-score">
@@ -590,6 +900,49 @@ export default function Dashboard() {
             {/* ═════════════════════════════════════════════════════════
                 2. CAMPAIGNS & COMPANY CHECKS VIEW
                ═════════════════════════════════════════════════════════ */}
+            
+            {/* ═════════════════════════════════════════════════════════
+                2. SECURITY ANALYTICS & STATISTICAL INTELLIGENCE VIEW
+               ═════════════════════════════════════════════════════════ */}
+            {activeView === "analytics" && (
+              <motion.div
+                key="view-analytics"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                className="portal-view"
+              >
+                <div className="portal-header">
+                  <div className="dashboard__status-pill glass-pill">
+                    <BarChart3 size={14} color="#38bdf8" />
+                    <span>Security Analytics & Telemetry</span>
+                  </div>
+                  <h2>Statistical Intelligence & Threat Metrics</h2>
+                  <p>In-depth verification velocity, Gaussian score distributions, and threat category breakdowns.</p>
+                </div>
+
+                {/* Tier 1 Charts: Monthly Velocity Spline & Threat Vector Donut */}
+                <div className="dashboard__charts-grid" style={{ marginTop: 24 }}>
+                  <div className="chart-card velocity-chart-card">
+                    <ActivityChart data={velocityData} />
+                  </div>
+                  <div className="chart-card donut-chart-card">
+                    <ThreatDonutChart categories={threatCategories} />
+                  </div>
+                </div>
+
+                {/* Tier 2 Charts: Score Distribution & 7-Day Velocity */}
+                <div className="dashboard__charts-dual-grid" style={{ marginTop: 24 }}>
+                  <div className="chart-card histogram-chart-card">
+                    <ScoreDistributionChart />
+                  </div>
+                  <div className="chart-card weekly-chart-card">
+                    <WeeklyVelocityChart />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {activeView === "companies" && (
               <motion.div
                 key="view-companies"
@@ -603,34 +956,103 @@ export default function Dashboard() {
                     <Building2 size={14} color="#38bdf8" />
                     <span>Company Verification Registry</span>
                   </div>
-                  <h2>Search & Verify Employers</h2>
+                  <h2>Verified Employers Directory</h2>
                   <p>Check corporate domain registration, authorized hiring signatories, and MCA record checks.</p>
                 </div>
 
-                <div className="dashboard__suggested-grid" style={{ marginTop: 24 }}>
-                  {recentChecks.map((c) => (
-                    <button
-                      key={c.id}
-                      className="glass-card dashboard__suggested-item"
-                      onClick={() => navigate(`/verify/${c.id}`)}
-                    >
-                      <div className="suggested-item__icon">
-                        <ShieldCheck size={18} color="var(--color-accent)" />
+                {/* Directory Search & Filter Controls */}
+                <div className="directory-controls">
+                  <div className="directory-search-pill">
+                    <Search size={18} color="var(--color-accent)" />
+                    <input
+                      type="text"
+                      placeholder="Search directory by company name, domain, or category..."
+                      value={directoryFilter}
+                      onChange={(e) => setDirectoryFilter(e.target.value)}
+                    />
+                  </div>
+                  <div className="directory-filter-tabs">
+                    {[
+                      { id: "all", label: "All Companies" },
+                      { id: "safe", label: "Verified Safe" },
+                      { id: "threats", label: "Flagged Threats" },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`filter-tab ${directoryTab === t.id ? "filter-tab--active" : ""}`}
+                        onClick={() => setDirectoryTab(t.id)}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Verified Directory Grid */}
+                <div className="directory-grid">
+                  {filteredDirectory.map((c) => (
+                    <div key={c.id} className="directory-card">
+                      <div className="directory-card__header">
+                        <div className="directory-card__avatar">
+                          <Building2 size={22} color={c.score >= 70 ? "#38bdf8" : "#f43f5e"} />
+                        </div>
+                        <div className="directory-card__meta">
+                          <h3 className="directory-card__name" title={c.name}>{c.name}</h3>
+                          <span className="directory-card__category">{c.category || "Enterprise"}</span>
+                        </div>
+                        <span className={`risk-badge risk-badge--${(c.risk || "LOW").toLowerCase()}`}>
+                          {c.risk === "LOW" ? "Verified Safe" : c.risk === "MEDIUM" ? "Moderate Risk" : "Threat Alert"}
+                        </span>
                       </div>
-                      <div>
-                        <strong>{c.name}</strong>
-                        <span>{c.domain}</span>
+
+                      <div className="directory-card__body">
+                        <div className="directory-card__chips">
+                          <span className="directory-domain-badge">
+                            {c.domain}
+                          </span>
+                          <span className={`table-mca-pill table-mca-pill--${(c.mcaStatus || "ACTIVE").toLowerCase()}`}>
+                            {c.mcaStatus === "NOT_FOUND" ? "MCA: Unregistered" : c.mcaStatus === "VERIFYING" ? "MCA: Pending" : "MCA: Registered"}
+                          </span>
+                        </div>
+
+                        {c.description && (
+                          <p className="directory-card__desc">{c.description}</p>
+                        )}
+
+                        <div className="directory-card__score">
+                          <div className="directory-card__score-row">
+                            <span className="directory-card__score-label">Trust Authenticity Index</span>
+                            <span className="directory-card__score-value">{c.score}/100</span>
+                          </div>
+                          <div className="directory-card__score-track">
+                            <div
+                              className="directory-card__score-bar"
+                              style={{
+                                width: `${c.score}%`,
+                                backgroundColor: c.score >= 80 ? "#22c55e" : c.score >= 50 ? "#eab308" : "#f43f5e",
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
-                      <ArrowUpRight size={16} className="suggested-item__arrow" />
-                    </button>
+
+                      <div className="directory-card__footer">
+                        <LiquidButton
+                          variant="ghost"
+                          size="sm"
+                          fullWidth={true}
+                          onClick={() => navigate(`/verify/${c.id}`)}
+                        >
+                          View Verification Dossier
+                        </LiquidButton>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </motion.div>
             )}
 
-            {/* ═════════════════════════════════════════════════════════
-                3. BRAND INTERACTION & THREAT RADAR VIEW
-               ═════════════════════════════════════════════════════════ */}
             {activeView === "threats" && (
               <motion.div
                 key="view-threats"
@@ -726,20 +1148,70 @@ export default function Dashboard() {
                 </div>
 
                 <div className="glass-card scanner-widget" style={{ marginTop: 24, padding: 32 }}>
-                  <div className="scanner-widget__dropzone" onClick={() => handleSimulateScan()} style={{ padding: 48 }}>
+                  <div
+                    className={`scanner-widget__dropzone ${
+                      isDragging ? "scanner-widget__dropzone--active" : ""
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ padding: 48 }}
+                  >
                     <UploadCloud size={52} color="#38bdf8" />
                     <div className="scanner-widget__drop-text">
-                      <strong style={{ fontSize: "1.1rem" }}>Upload Internship Offer Letter (PDF / DOCX)</strong>
-                      <span>We extract signatory metadata and cross-check corporate registries</span>
+                      <strong style={{ fontSize: "1.1rem" }}>
+                        {isDragging
+                          ? "Drop offer letter here now"
+                          : uploadedFile
+                          ? uploadedFile.name
+                          : "Upload Internship Offer Letter (PDF / DOCX / TXT)"}
+                      </strong>
+                      <span>
+                        We extract signatory metadata and cross-check corporate registries
+                      </span>
                     </div>
+
+                    {uploadedFile && (
+                      <div className="scanner-widget__file-chip">
+                        <FileCheck size={14} />
+                        <span>
+                          {uploadedFile.name} (
+                          {uploadedFile.size
+                            ? `${Math.round(uploadedFile.size / 1024)} KB`
+                            : "Uploaded"}
+                          )
+                        </span>
+                        <button
+                          type="button"
+                          className="scanner-widget__file-clear"
+                          onClick={handleClearFile}
+                          title="Remove file"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+
+                    {scannerSimulating && (
+                      <div className="scanner-step-badge">
+                        <Sparkles size={13} />
+                        <span>{scanStep || "Running AI Heuristics..."}</span>
+                      </div>
+                    )}
+
                     <LiquidButton
                       variant="cyan"
                       size="md"
                       showArrow={false}
                       disabled={scannerSimulating}
-                      onClick={() => handleSimulateScan()}
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      {scannerSimulating ? "Running AI Heuristics..." : "Select Document"}
+                      {scannerSimulating
+                        ? "Running AI Heuristics..."
+                        : uploadedFile
+                        ? "Change Document"
+                        : "Select Document"}
                     </LiquidButton>
                   </div>
 
@@ -754,6 +1226,13 @@ export default function Dashboard() {
                         <CheckCircle2 size={20} color={scannerResult.score >= 70 ? "#22c55e" : "#f43f5e"} />
                         <strong>Authenticity Index: {scannerResult.score}/100 — {scannerResult.score >= 70 ? "Verified Genuine" : "Flagged Suspicious"}</strong>
                       </div>
+
+                      {scannerResult.summary && (
+                        <p style={{ fontSize: "0.88rem", color: "var(--text-secondary)", marginBottom: 14 }}>
+                          {scannerResult.summary}
+                        </p>
+                      )}
+
                       <div className="scanner-signals-list" style={{ marginTop: 12 }}>
                         {scannerResult.signals.map((sig, idx) => (
                           <div key={idx} className="scanner-signal-row">
@@ -766,6 +1245,17 @@ export default function Dashboard() {
                             <span className="signal-desc">{sig.desc}</span>
                           </div>
                         ))}
+                      </div>
+
+                      <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end" }}>
+                        <LiquidButton
+                          variant="ghost"
+                          size="sm"
+                          showArrow={false}
+                          onClick={handleClearFile}
+                        >
+                          Scan Another Document
+                        </LiquidButton>
                       </div>
                     </motion.div>
                   )}
@@ -793,33 +1283,48 @@ export default function Dashboard() {
                   <p>Access your bookmarked safety certificates and verified company documents.</p>
                 </div>
 
-                <div className="dashboard__suggested-grid" style={{ marginTop: 24 }}>
-                  {recentChecks.slice(0, 3).map((c) => (
-                    <div key={c.id} className="glass-card dashboard__suggested-item" style={{ cursor: "default" }}>
-                      <div className="suggested-item__icon">
-                        <ShieldCheck size={20} color="#22c55e" />
+                <div className="directory-grid" style={{ marginTop: 24 }}>
+                  {recentChecks.slice(0, 6).map((c) => (
+                    <div key={c.id} className="directory-card">
+                      <div className="directory-card__header">
+                        <div className="directory-card__avatar">
+                          <ShieldCheck size={22} color="#22c55e" />
+                        </div>
+                        <div className="directory-card__meta">
+                          <h3 className="directory-card__name">{c.name}</h3>
+                          <span className="directory-card__category">Audit ID: #IS-{c.id.toUpperCase()}-2026</span>
+                        </div>
+                        <span className="risk-badge risk-badge--low">
+                          Certified Safe
+                        </span>
                       </div>
-                      <div>
-                        <strong>{c.name}</strong>
-                        <span>Safety Certificate #IS-{c.id.toUpperCase()}-2026</span>
+
+                      <div className="directory-card__body">
+                        <div className="directory-card__chips">
+                          <span className="directory-domain-badge">{c.domain}</span>
+                          <span className="table-mca-pill table-mca-pill--active">MCA: Verified</span>
+                        </div>
+                        <p className="directory-card__desc">
+                          Cryptographic safety audit certificate issued and signed by InternShield AI Engine v2.6.
+                        </p>
                       </div>
-                      <LiquidButton
-                        variant="ghost"
-                        size="sm"
-                        showArrow={false}
-                        onClick={() => navigate(`/verify/${c.id}`)}
-                      >
-                        Open Dossier
-                      </LiquidButton>
+
+                      <div className="directory-card__footer">
+                        <LiquidButton
+                          variant="ghost"
+                          size="sm"
+                          fullWidth={true}
+                          onClick={() => setSelectedCertCompany(c)}
+                        >
+                          Open Safety Certificate
+                        </LiquidButton>
+                      </div>
                     </div>
                   ))}
                 </div>
               </motion.div>
             )}
 
-            {/* ═════════════════════════════════════════════════════════
-                7. PLANS & STUDENT PASS VIEW
-               ═════════════════════════════════════════════════════════ */}
             {activeView === "plans" && (
               <motion.div
                 key="view-plans"
@@ -937,6 +1442,15 @@ export default function Dashboard() {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* Verifiable Safety Certificate Modal & Native PDF Export */}
+      {selectedCertCompany && (
+        <SafetyCertificateModal
+          company={selectedCertCompany}
+          onClose={() => setSelectedCertCompany(null)}
+        />
+      )}
     </div>
   );
 }
+

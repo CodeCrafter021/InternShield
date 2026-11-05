@@ -6,41 +6,37 @@
 /* Fonts loaded via <link> in index.html — do not duplicate with @import */
 
 :root {
-  /* --- Core palette --- */
-  --color-primary: #7c3aed;
-  /* Purple */
-  --color-primary-light: #9d5ffc;
-  --color-secondary: #3b82f6;
-  /* Blue */
-  --color-accent: #00e5ff;
-  /* Vivid Cyan */
-  --color-teal: #14c8c8;
-  /* Teal */
-  --color-success: #22c55e;
-  --color-danger: #f43f5e;
-  --color-warning: #eab308;
+  /* --- Core palette — Stealth Linear / Vercel style --- */
+  --color-primary: #6366f1;        /* Indigo */
+  --color-primary-light: #818cf8;
+  --color-secondary: #0ea5e9;      /* Sky */
+  --color-accent: #00e5ff;         /* Electric Cyan */
+  --color-teal: #14b8a6;           /* Teal */
+  --color-success: #10b981;        /* Emerald */
+  --color-danger: #f43f5e;         /* Rose / Red */
+  --color-warning: #f59e0b;        /* Amber */
 
-  /* --- Backgrounds --- */
-  --color-bg: #060a12;
-  --color-bg-elevated: #0b1120;
-  --color-bg-card: #0e1628;
+  /* --- Deep Obsidian Stealth Backgrounds --- */
+  --color-bg: #030712;
+  --color-bg-elevated: #070d19;
+  --color-bg-card: #0b1324;
 
-  /* --- Clean Modern Dark Glass surfaces --- */
-  --glass-bg: rgba(13, 20, 36, 0.65);
-  --glass-bg-hover: rgba(18, 28, 50, 0.75);
-  --glass-bg-active: rgba(22, 34, 60, 0.85);
+  /* --- Stealth Modern Glass Surfaces --- */
+  --glass-bg: rgba(9, 15, 29, 0.72);
+  --glass-bg-hover: rgba(13, 21, 39, 0.82);
+  --glass-bg-active: rgba(17, 28, 51, 0.9);
   --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(255, 255, 255, 0.16);
-  --glass-border-glow: rgba(56, 189, 248, 0.25);
+  --glass-border-hover: rgba(56, 189, 248, 0.28);
+  --glass-border-glow: rgba(0, 229, 255, 0.35);
   --glass-blur: 20px;
   --glass-saturate: 180%;
   
-  /* Specular & reflections (clean, matte, non-distracting) */
-  --glass-specular-top: none;
+  /* Specular top-edge micro-sheen (Iconic Linear style) */
+  --glass-specular-top: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
   --glass-specular-bottom: none;
   --glass-inner-sheen: none;
-  --glass-shadow-liquid: 0 10px 32px 0 rgba(0, 0, 0, 0.35);
-  --glass-shadow-glow: 0 14px 40px 0 rgba(0, 0, 0, 0.45);
+  --glass-shadow-liquid: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset, 0 12px 32px -8px rgba(0, 0, 0, 0.65);
+  --glass-shadow-glow: 0 1px 0 0 rgba(255, 255, 255, 0.14) inset, 0 18px 48px -10px rgba(0, 0, 0, 0.75), 0 0 24px rgba(56, 189, 248, 0.14);
 
   /* --- Text --- */
   --text-primary: #f8fafc;
@@ -54,18 +50,17 @@
   --font-hud: "Orbitron", sans-serif;
 
   /* --- Gradients --- */
-  --gradient-primary: linear-gradient(135deg, rgba(139, 92, 246, 0.95) 0%, rgba(99, 102, 241, 0.92) 50%, rgba(6, 182, 212, 0.9) 100%);
-  --gradient-liquid: rgba(13, 20, 36, 0.65);
-  --gradient-liquid-hover: rgba(18, 28, 50, 0.75);
-  --gradient-text: linear-gradient(135deg, #c4b5fd 0%, #93c5fd 50%, #67e8f9 100%);
+  --gradient-primary: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(14, 165, 233, 0.92) 50%, rgba(0, 229, 255, 0.9) 100%);
+  --gradient-liquid: rgba(9, 15, 29, 0.72);
+  --gradient-liquid-hover: rgba(13, 21, 39, 0.82);
+  --gradient-text: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #93c5fd 100%);
   --gradient-cyan-text: linear-gradient(90deg, #38bdf8, #2dd4bf);
-  --gradient-hero-bg: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(76, 29, 219, 0.35) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 80% 80%, rgba(0, 229, 255, 0.12) 0%, transparent 60%);
+  --gradient-hero-bg: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(56, 189, 248, 0.16) 0%, transparent 70%);
 
   /* --- Glow shadows --- */
-  --glow-purple: 0 0 40px rgba(139, 92, 246, 0.55);
-  --glow-cyan: 0 0 40px rgba(56, 189, 248, 0.45);
-  --glow-teal: 0 0 30px rgba(45, 212, 191, 0.4);
+  --glow-purple: 0 0 32px rgba(99, 102, 241, 0.45);
+  --glow-cyan: 0 0 32px rgba(56, 189, 248, 0.4);
+  --glow-teal: 0 0 24px rgba(20, 184, 166, 0.35);
 
   /* --- Apple Continuous Curve Radii --- */
   --radius-xs: 6px;
@@ -279,12 +274,15 @@ img {
   color: transparent;
 }
 
-/* ---------- Aurora Background ---------- */
+/* ---------- Aurora Background (Stealth Linear Obsidian Canvas) ---------- */
 .aurora-bg {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background: linear-gradient(135deg, #060a12 0%, #0a0e1a 40%, #0d0820 70%, #060a12 100%);
+  background:
+    radial-gradient(ellipse 90% 50% at 50% -10%, rgba(56, 189, 248, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 60% at 90% 80%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, #030712 0%, #050a16 50%, #030712 100%);
   overflow: hidden;
   pointer-events: none;
   transform: translateZ(0);
@@ -293,44 +291,44 @@ img {
 .aurora-blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(110px);
-  opacity: 0.32;
-  animation: drift 22s ease-in-out infinite alternate;
+  filter: blur(120px);
+  opacity: 0.18;
+  animation: drift 24s ease-in-out infinite alternate;
   will-change: transform;
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
 }
 
 .aurora-blob.one {
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, #3b1a7e, #5b21b6);
+  width: 650px;
+  height: 650px;
+  background: radial-gradient(circle, #312e81, #1e1b4b);
   top: -15%;
   left: -10%;
 }
 
 .aurora-blob.two {
-  width: 450px;
-  height: 450px;
-  background: radial-gradient(circle, #0c5c74, #00b8d4);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #0369a1, #0284c7);
   bottom: -15%;
   right: -8%;
   animation-delay: -8s;
 }
 
 .aurora-blob.three {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, #1a2f6d, #2b5daf);
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, #1e3a8a, #0f172a);
   top: 35%;
   left: 52%;
   animation-delay: -14s;
 }
 
 .aurora-blob.four {
-  width: 250px;
-  height: 250px;
-  background: radial-gradient(circle, #5b21b6, #8b5cf6);
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, #0d9488, #115e59);
   top: 65%;
   left: 10%;
   animation-delay: -5s;
@@ -342,29 +340,29 @@ img {
   }
 
   33% {
-    transform: translate3d(35px, -25px, 0) scale(1.06);
+    transform: translate3d(30px, -20px, 0) scale(1.05);
   }
 
   66% {
-    transform: translate3d(-20px, 30px, 0) scale(0.97);
+    transform: translate3d(-15px, 25px, 0) scale(0.98);
   }
 
   100% {
-    transform: translate3d(15px, -15px, 0) scale(1.03);
+    transform: translate3d(12px, -12px, 0) scale(1.02);
   }
 }
 
-/* ── Grid overlay ── */
+/* ── Stealth Precision Grid Overlay ── */
 .grid-overlay {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(124, 58, 237, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124, 58, 237, 0.035) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 80% 70% at center, black 0%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse 80% 70% at center, black 0%, transparent 80%);
-  animation: grid-pan 50s linear infinite;
+  animation: grid-pan 60s linear infinite;
   transform: translateZ(0);
 }
 
@@ -374,7 +372,7 @@ img {
   }
 
   to {
-    background-position: 240px 240px;
+    background-position: 220px 220px;
   }
 }
 
@@ -382,7 +380,7 @@ img {
 .bg-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 70% 70% at 50% 50%, transparent 30%, rgba(6, 10, 18, 0.6) 100%);
+  background: radial-gradient(ellipse 70% 70% at 50% 50%, transparent 40%, rgba(3, 7, 18, 0.75) 100%);
   pointer-events: none;
 }
 
@@ -733,4 +731,174 @@ img {
   text-align: center;
   font-size: clamp(1.7rem, 3.2vw, 2.4rem);
   margin-bottom: 48px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ANDROID & MOBILE ULTRA-SMOOTH GPU PERFORMANCE OPTIMIZATIONS
+   Fixes mobile lag, stops GPU fill-rate throttling & gives 60-120 FPS
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px), (pointer: coarse) {
+  :root {
+    /* Low-latency glass properties on mobile GPUs */
+    --glass-blur: 4px;
+    --glass-saturate: 110%;
+    --glass-bg: rgba(10, 16, 30, 0.94);
+    --glass-bg-hover: rgba(14, 22, 40, 0.96);
+    --glass-shadow-liquid: 0 4px 14px rgba(0, 0, 0, 0.35);
+    --glass-shadow-glow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Disable expensive continuous infinite background CPU/GPU animations */
+  .aurora-blob {
+    animation: none !important;
+    filter: blur(35px) !important;
+    opacity: 0.18 !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  .grid-overlay {
+    animation: none !important;
+    background-size: 32px 32px !important;
+    transform: none !important;
+  }
+
+  /* Completely remove heavy 3D multi-face rotating cubes on mobile */
+  .float-cube {
+    display: none !important;
+  }
+
+  /* Fast matte glass on mobile without backdrop-filter lag */
+  .glass,
+  .glass-card,
+  .glass-pill {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* Disable hover scale bounces on touch screens */
+  .glass-card:hover,
+  .glass-pill:hover,
+  .liquid-btn:hover {
+    transform: none !important;
+  }
+
+  /* Native touch momentum scrolling */
+  body,
+  .dashboard-portal-main,
+  .recent-checks__table-wrap {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Defer rendering of off-screen DOM blocks to save mobile memory */
+  .footer,
+  .recent-checks,
+  .features-grid {
+    content-visibility: auto;
+    contain-intrinsic-size: 400px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   OFFICIAL SAFETY CERTIFICATE & PRINT / SAVE AS PDF STYLES
+   Native Android & Desktop PDF Generation via window.print()
+   ══════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Hide non-printable UI elements */
+  .navbar,
+  .aurora-bg,
+  .footer,
+  .verify__actions,
+  .dashboard-sidebar,
+  .dashboard-mobile-topbar,
+  .mobile-burger-btn,
+  .certificate-modal__actions,
+  button,
+  .liquid-btn {
+    display: none !important;
+  }
+
+  body,
+  .page,
+  .container {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .glass,
+  .glass-card,
+  .certificate-card {
+    background: #ffffff !important;
+    border: 1.5px solid #0f172a !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .evidence-row {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+
+  .evidence-row__name {
+    color: #0f172a !important;
+  }
+
+  .certificate-seal {
+    border-color: #0f172a !important;
+  }
+}
+/* ══════════════════════════════════════════════════════
+   MOBILE PHONE 120 FPS & ZERO-OVERFLOW MASTER GUARD
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  html, body, #root, .page {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    position: relative;
+  }
+
+  /* Prevent any rogue child from causing horizontal pan */
+  *, *::before, *::after {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Disable heavy background 3D cubes to guarantee 120 FPS on mobile */
+  .float-cube {
+    display: none !important;
+  }
+
+  /* Freeze heavy 120px blur animations on mobile GPU */
+  .aurora-blob {
+    animation: none !important;
+    filter: blur(35px) !important;
+    opacity: 0.1 !important;
+    transform: none !important;
+  }
+
+  .grid-overlay {
+    animation: none !important;
+  }
+
+  /* GPU-optimized touch momentum scrolling */
+  body, .page, .dashboard-portal-main {
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Relieve mobile GPU from heavy blur rasterization */
+  .glass,
+  .glass-card,
+  .glass-pill {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
 }

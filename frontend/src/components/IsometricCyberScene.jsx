@@ -82,9 +82,9 @@ export default function IsometricCyberScene() {
         </g>
 
         {/* Concentric Radar Sonar Ripples Under Bottom Node */}
-        <ellipse cx="300" cy="350" rx="95" ry="48" stroke="rgba(0, 229, 255, 0.35)" strokeWidth="1.8" className="iso-sonar-ring iso-sonar-ring--1" />
-        <ellipse cx="300" cy="350" rx="150" ry="75" stroke="rgba(56, 189, 248, 0.25)" strokeWidth="1.4" className="iso-sonar-ring iso-sonar-ring--2" />
-        <ellipse cx="300" cy="350" rx="210" ry="105" stroke="rgba(139, 92, 246, 0.15)" strokeWidth="1" className="iso-sonar-ring iso-sonar-ring--3" />
+        <ellipse cx="300" cy="295" rx="95" ry="48" stroke="rgba(0, 229, 255, 0.35)" strokeWidth="1.8" className="iso-sonar-ring iso-sonar-ring--1" />
+        <ellipse cx="300" cy="295" rx="150" ry="75" stroke="rgba(56, 189, 248, 0.25)" strokeWidth="1.4" className="iso-sonar-ring iso-sonar-ring--2" />
+        <ellipse cx="300" cy="295" rx="210" ry="105" stroke="rgba(139, 92, 246, 0.15)" strokeWidth="1" className="iso-sonar-ring iso-sonar-ring--3" />
 
         {/* Glowing Bus Pipelines Between Platforms */}
         {/* Left -> Top */}
@@ -115,7 +115,7 @@ export default function IsometricCyberScene() {
         {/* Perimeter Circuit Breakouts */}
         <path d="M 160 215 L 50 270 L 20 310" stroke="rgba(0, 229, 255, 0.35)" strokeWidth="1.5" strokeDasharray="4 4" />
         <path d="M 440 215 L 550 270 L 580 310" stroke="rgba(139, 92, 246, 0.35)" strokeWidth="1.5" strokeDasharray="4 4" />
-        <path d="M 300 350 L 300 440 L 230 475" stroke="rgba(45, 212, 191, 0.35)" strokeWidth="1.5" strokeDasharray="4 4" />
+        <path d="M 300 295 L 300 410 L 230 450" stroke="rgba(45, 212, 191, 0.35)" strokeWidth="1.5" strokeDasharray="4 4" />
       </svg>
 
       {/* ── 3D ISOMETRIC PLATFORM NODES ── */}

@@ -408,81 +408,104 @@ export default function About() {
           </p>
         </div>
 
-        <div className="about-pipeline-layout">
-          {/* Step Selector Tabs */}
-          <div className="about-pipeline-tabs">
-            {PIPELINE_STAGES.map((st, i) => {
-              const Icon = st.icon;
-              const isActive = activeStage === i;
-              return (
-                <button
-                  key={st.step}
-                  type="button"
-                  onClick={() => setActiveStage(i)}
-                  className={`about-pipeline-tab glass ${isActive ? "about-pipeline-tab--active" : ""}`}
-                >
-                  <div className="tab-left">
-                    <span className="tab-step-num">{st.step}</span>
-                    <div className="tab-icon-wrap" style={{ color: st.color }}>
-                      <Icon size={18} />
-                    </div>
-                  </div>
-                  <div className="tab-text">
-                    <span className="tab-tag">{st.tag}</span>
-                    <h4 className="tab-title">{st.title}</h4>
-                  </div>
-                  <ChevronRight size={18} className="tab-arrow" />
-                </button>
-              );
-            })}
+        {/* Unified Forensics Command Console */}
+        <div className="pipeline-console glass">
+          {/* Top Console Window Header */}
+          <div className="console-topbar">
+            <div className="console-window-dots">
+              <span className="dot dot--red" />
+              <span className="dot dot--yellow" />
+              <span className="dot dot--green" />
+            </div>
+            <div className="console-title">
+              <Terminal size={13} color="#38bdf8" />
+              <span>internshield-heuristic-core // verification-telemetry</span>
+            </div>
+            <div className="console-status-pill">
+              <span className="status-indicator-dot" />
+              <span>LIVE ENGINE READY</span>
+            </div>
           </div>
 
-          {/* Active Stage Inspector Panel */}
-          <div className="about-pipeline-inspector glass-card">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeStage}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                className="inspector-content"
-              >
-                <div className="inspector-top">
-                  <div
-                    className="inspector-badge glass-pill"
-                    style={{
-                      color: PIPELINE_STAGES[activeStage].color,
-                      borderColor: `${PIPELINE_STAGES[activeStage].color}40`,
-                    }}
+          {/* Console Workstation Body: Left Stages Rail + Right Inspector */}
+          <div className="console-workstation">
+            {/* Left Stages Rail */}
+            <div className="console-sidebar">
+              {PIPELINE_STAGES.map((st, i) => {
+                const Icon = st.icon;
+                const isActive = activeStage === i;
+                return (
+                  <button
+                    key={st.step}
+                    type="button"
+                    onClick={() => setActiveStage(i)}
+                    className={`console-stage-item ${isActive ? "console-stage-item--active" : ""}`}
+                    style={{ "--stage-accent": st.color }}
                   >
-                    <span className="inspector-badge-dot" style={{ background: PIPELINE_STAGES[activeStage].color }} />
-                    <span>Stage {PIPELINE_STAGES[activeStage].step} • {PIPELINE_STAGES[activeStage].tag}</span>
-                  </div>
-                  <h3 className="inspector-heading">{PIPELINE_STAGES[activeStage].title}</h3>
-                  <p className="inspector-desc">{PIPELINE_STAGES[activeStage].desc}</p>
-                </div>
-
-                <div className="inspector-checks">
-                  <span className="checks-label">Automated Deep Inspections:</span>
-                  <div className="checks-grid">
-                    {PIPELINE_STAGES[activeStage].details.map((d, idx) => (
-                      <div key={idx} className="check-pill glass">
-                        <CheckCircle2 size={16} color={PIPELINE_STAGES[activeStage].color} className="pill-icon" />
-                        <span>{d}</span>
+                    <div className="stage-left-info">
+                      <span className="stage-num-mono">{st.step}</span>
+                      <div className="stage-icon-box" style={{ color: st.color }}>
+                        <Icon size={17} />
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                    <div className="stage-text-block">
+                      <span className="stage-tag-micro">{st.tag}</span>
+                      <h4 className="stage-title-text">{st.title}</h4>
+                    </div>
+                    <ChevronRight size={16} className="stage-chevron" />
+                  </button>
+                );
+              })}
+            </div>
 
-                <div className="inspector-footer">
-                  <div className="inspector-terminal-bar glass">
-                    <Terminal size={14} color="#38bdf8" className="pill-icon" />
-                    <code>STATUS: HEURISTIC ENGINE PASSING [0.42s EXEC TIME]</code>
+            {/* Right Telemetry Viewport */}
+            <div className="console-viewport">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeStage}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                  className="inspector-content"
+                >
+                  <div className="inspector-top">
+                    <div
+                      className="inspector-badge"
+                      style={{
+                        color: PIPELINE_STAGES[activeStage].color,
+                        borderColor: `${PIPELINE_STAGES[activeStage].color}40`,
+                        background: `${PIPELINE_STAGES[activeStage].color}14`,
+                      }}
+                    >
+                      <span className="inspector-badge-dot" style={{ background: PIPELINE_STAGES[activeStage].color }} />
+                      <span>Stage {PIPELINE_STAGES[activeStage].step} • {PIPELINE_STAGES[activeStage].tag}</span>
+                    </div>
+                    <h3 className="inspector-heading">{PIPELINE_STAGES[activeStage].title}</h3>
+                    <p className="inspector-desc">{PIPELINE_STAGES[activeStage].desc}</p>
                   </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+
+                  <div className="inspector-checks">
+                    <span className="checks-label">Automated Deep Inspections:</span>
+                    <div className="checks-grid">
+                      {PIPELINE_STAGES[activeStage].details.map((d, idx) => (
+                        <div key={idx} className="check-card">
+                          <CheckCircle2 size={16} color={PIPELINE_STAGES[activeStage].color} className="check-card-icon" />
+                          <span>{d}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="inspector-footer">
+                    <div className="inspector-terminal-bar">
+                      <Terminal size={14} color="#38bdf8" />
+                      <code>STATUS: HEURISTIC ENGINE PASSING [0.42s BENCHMARK] • 100% CLEAR</code>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </section>

@@ -42,10 +42,9 @@ public class AuthController {
 
         String token = jwtUtil.generateToken(email);
         return ResponseEntity.ok(Map.of(
-            "token", token,
-            "email", email,
-            "name", name != null ? name : ""
-        ));
+                "token", token,
+                "email", email,
+                "name", name != null ? name : ""));
     }
 
     // Login
@@ -66,10 +65,9 @@ public class AuthController {
 
         String token = jwtUtil.generateToken(email);
         return ResponseEntity.ok(Map.of(
-            "token", token,
-            "email", email,
-            "name", user.getName() != null ? user.getName() : ""
-        ));
+                "token", token,
+                "email", email,
+                "name", user.getName() != null ? user.getName() : ""));
     }
 
     // Delete Account
@@ -106,8 +104,7 @@ public class AuthController {
 
         User user = userOpt.get();
         return ResponseEntity.ok(Map.of(
-            "email", user.getEmail(),
-            "name", user.getName() != null ? user.getName() : ""
-        ));
+                "email", user.getEmail(),
+                "name", user.getName() != null ? user.getName() : ""));
     }
 }

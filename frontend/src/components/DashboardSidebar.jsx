@@ -1,24 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
-  LayoutGrid,
-  HelpCircle,
+  Home,
+  ShieldCheck,
+  TrendingUp,
+  BarChart3,
+  Building2,
+  FileText,
   User,
   Settings,
+  HelpCircle,
+  Search,
+  ChevronLeft,
+  ArrowRight,
+  Cloud,
   LogOut,
+  Shield,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import "./DashboardSidebar.css";
-
-// Avatar presets mapping for avatar icons
-const AVATAR_EMOJIS = {
-  "avatar-cyber-1": "🛡️",
-  "avatar-cyber-2": "⚡",
-  "avatar-cyber-3": "🤖",
-  "avatar-cyber-4": "🔮",
-  "avatar-cyber-5": "🚀",
-};
 
 export default function DashboardSidebar({
   activeView = "dashboard",
@@ -26,32 +27,93 @@ export default function DashboardSidebar({
   isOpen = false,
   onClose,
 }) {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
+
+  // Desktop collapse state (persisted in localStorage)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("internshield_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("internshield_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   function handleLogout() {
     logout();
     navigate("/");
   }
 
-  function handleBackToHome() {
-    navigate("/");
-  }
-
-  const avatarEmoji = (user?.avatarId && AVATAR_EMOJIS[user.avatarId]) || "🛡️";
-
-  // Streamlined Navigation Menu:
-  // Included: Dashboard, Help/Support, Profile, Settings
-  const MENU_ITEMS = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
-    { id: "help", label: "Help/Support", icon: HelpCircle },
-    { id: "profile", label: "Profile", icon: User },
-    { id: "settings", label: "Settings", icon: Settings },
+  // Meaningful navigation items arranged specifically for InternShield
+  const NAV_ITEMS = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: Home,
+    },
+    {
+      id: "scanner",
+      label: "Offer Scanner",
+      icon: ShieldCheck,
+      badge: "AI",
+      badgeType: "ai",
+    },
+    {
+      id: "analytics",
+      label: "Security Analytics",
+      icon: BarChart3,
+      badge: "Stats",
+      badgeType: "ai",
+    },
+    {
+      id: "threats",
+      label: "Threat Radar",
+      icon: TrendingUp,
+      badge: "3",
+      badgeType: "alert",
+    },
+    {
+      id: "companies",
+      label: "Verified Directory",
+      icon: Building2,
+    },
+    {
+      id: "dossiers",
+      label: "Saved Dossiers",
+      icon: FileText,
+    },
+    {
+      id: "profile",
+      label: "Student Profile",
+      icon: User,
+    },
+    {
+      id: "settings",
+      label: "Security Settings",
+      icon: Settings,
+    },
+    {
+      id: "help",
+      label: "Help & Support",
+      icon: HelpCircle,
+    },
   ];
 
-  function isItemActive(itemId) {
-    return activeView === itemId;
-  }
+  const filteredItems = NAV_ITEMS.filter((item) =>
+    item.label.toLowerCase().includes(searchQuery.toLowerCase().trim())
+  );
 
   return (
     <>
@@ -64,101 +126,199 @@ export default function DashboardSidebar({
         />
       )}
 
+      {/* ── InternShield Sleek Navigation Sidebar ── */}
       <aside
-        className={`dashboard-sidebar ${isOpen ? "dashboard-sidebar--open" : ""}`}
+        className={`dashboard-sidebar-v2 ${
+          isCollapsed ? "sidebar--collapsed" : "sidebar--expanded"
+        } ${isOpen ? "sidebar--mobile-open" : ""}`}
       >
-        {/* ── Top Header with Back Arrow Button ── */}
-        <div className="sidebar-top-bar">
-          <button
-            type="button"
-            className="sidebar-back-btn"
-            onClick={handleBackToHome}
-            title="Back to Home"
-            aria-label="Back to Home"
-          >
-            <ArrowLeft size={18} />
-          </button>
+        {/* ── Circular Edge Toggle Button ── */}
+        <button
+          type="button"
+          className="sidebar-edge-toggle"
+          onClick={toggleCollapse}
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          aria-label={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          <ChevronLeft
+            size={14}
+            className={`toggle-chevron ${
+              isCollapsed ? "toggle-chevron--collapsed" : ""
+            }`}
+          />
+        </button>
+
+        {/* ── Brand Header ── */}
+        <div
+          className="sidebar-brand-row"
+          onClick={() => {
+            onSelectView("dashboard");
+            if (isOpen && onClose) onClose();
+          }}
+          title="InternShield Dashboard"
+        >
+          <div className="sidebar-brand-emblem-wrap">
+            <div className="sidebar-brand-emblem">
+              <Shield size={19} className="brand-emblem-icon" />
+            </div>
+          </div>
+          <div className="sidebar-label-col brand-label-col">
+            <span className="sidebar-brand-title">InternShield</span>
+            <span className="sidebar-brand-tag">Security Portal</span>
+          </div>
         </div>
 
-        {/* ── User Profile Header Capsule (Exact Reference Screenshot Layout) ── */}
+        {/* ── Search Bar Pill ── */}
         <div
-          className="sidebar-profile-card"
-          onClick={() => {
-            onSelectView("profile");
-            if (onClose) onClose();
-          }}
-          title="View Student Profile"
-          style={{ cursor: "pointer" }}
+          className="sidebar-search-wrap"
+          onClick={() => isCollapsed && setIsCollapsed(false)}
         >
-          <div className="sidebar-avatar-wrap">
-            <div className="sidebar-avatar-circle">
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name || "Avatar"}
-                  className="sidebar-avatar-img"
-                />
-              ) : (
-                <span className="sidebar-avatar-emoji">{avatarEmoji}</span>
-              )}
+          <div className="sidebar-search-pill">
+            <div className="search-icon-box">
+              <Search size={16} className="search-pill-icon" />
             </div>
-            {/* Status badge pill overlay matching screenshot */}
-            <span className="sidebar-avatar-badge">5v</span>
+            <div className="sidebar-label-col search-input-col">
+              <input
+                type="text"
+                placeholder="Search portal..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-pill-input"
+                tabIndex={isCollapsed ? -1 : 0}
+              />
+            </div>
           </div>
+        </div>
 
-          <div className="sidebar-user-details">
-            <strong className="sidebar-user-name">
-              {user?.name || "Atharva Wallapkar"}
-            </strong>
-            <span className="sidebar-user-email" title={user?.email || "atharvawallapkar261@gmail.com"}>
-              {user?.email || "atharvawallapkar261@gmail.com"}
+        {/* ── Section Title "Menu" ── */}
+        <div className="sidebar-section-title">
+          <div className="section-title-wrap">
+            <span className="section-title-text">
+              {isCollapsed ? "•••" : "Menu"}
             </span>
           </div>
         </div>
 
-        {/* ── Divider ── */}
-        <div className="sidebar-divider" />
-
-        {/* ── Menu Items Navigation List ── */}
-        <nav className="sidebar-nav-menu">
-          {MENU_ITEMS.map((item) => {
-            const IconComponent = item.icon;
-            const active = isItemActive(item.id);
+        {/* ── Navigation Menu List ── */}
+        <nav className="sidebar-nav-list">
+          {filteredItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.id;
 
             return (
               <button
                 key={item.id}
                 type="button"
-                className={`sidebar-nav-item ${
-                  active ? "sidebar-nav-item--active" : ""
+                className={`sidebar-nav-btn ${
+                  isActive ? "sidebar-nav-btn--active" : ""
                 }`}
                 onClick={() => {
                   onSelectView(item.id);
-                  if (onClose) onClose();
+                  if (isOpen && onClose) onClose();
                 }}
               >
-                <span className="sidebar-nav-item__icon">
-                  <IconComponent size={20} strokeWidth={1.8} />
-                </span>
-                <span className="sidebar-nav-item__label">{item.label}</span>
+                {/* Active Indicator Bar */}
+                {isActive && <span className="active-indicator-bar" />}
+
+                {/* Left Fixed Icon Slot */}
+                <div className="nav-btn-icon-box">
+                  <Icon size={18} strokeWidth={1.9} />
+                  {isCollapsed && item.badge && (
+                    <span className="collapsed-badge-dot" />
+                  )}
+                </div>
+
+                {/* Right Flexible Label Slot */}
+                <div className="sidebar-label-col nav-label-col">
+                  <span className="nav-btn-label">{item.label}</span>
+                  {item.badge && (
+                    <span
+                      className={`nav-btn-badge ${
+                        item.badgeType === "ai"
+                          ? "nav-btn-badge--ai"
+                          : "nav-btn-badge--alert"
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Tooltip on Collapsed Mode */}
+                {isCollapsed && (
+                  <span className="sidebar-collapsed-tooltip">
+                    {item.label}
+                  </span>
+                )}
               </button>
             );
           })}
+        </nav>
 
-          {/* ── Logout Button at Bottom of Menu List ── */}
+        {/* ── Bottom Section (Tailored to InternShield) ── */}
+        <div className="sidebar-bottom-block">
+          <div className="sidebar-bottom-divider" />
+
+          {/* Student Protection Pass */}
           <button
             type="button"
-            className="sidebar-nav-item sidebar-nav-item--logout"
-            onClick={handleLogout}
+            className="sidebar-action-row pro-action-row"
+            onClick={() => {
+              onSelectView("plans");
+              if (isOpen && onClose) onClose();
+            }}
+            title="Student Safety Pass (100% Free)"
           >
-            <span className="sidebar-nav-item__icon">
-              <LogOut size={20} strokeWidth={1.8} />
-            </span>
-            <span className="sidebar-nav-item__label">Logout</span>
+            <div className="action-icon-box">
+              <span className="pro-pill-badge">Free</span>
+            </div>
+            <div className="sidebar-label-col pro-label-col">
+              <span className="pro-action-label">Student Pass</span>
+              <ArrowRight size={14} className="pro-action-arrow" />
+            </div>
+            {isCollapsed && (
+              <span className="sidebar-collapsed-tooltip">Student Pass</span>
+            )}
           </button>
-        </nav>
+
+          {/* Real-time Cloud Defense */}
+          <div
+            className="sidebar-action-row cloud-action-row"
+            title="Real-Time Cloud Defense Active"
+          >
+            <div className="action-icon-box">
+              <Cloud size={18} strokeWidth={1.8} />
+            </div>
+            <div className="sidebar-label-col cloud-label-col">
+              <span className="cloud-action-label">Cloud Shield Active</span>
+              <span className="cloud-status-dot" />
+            </div>
+            {isCollapsed && (
+              <span className="sidebar-collapsed-tooltip">
+                Cloud Shield Active
+              </span>
+            )}
+          </div>
+
+          {/* Clean Logout Option */}
+          <button
+            type="button"
+            className="sidebar-action-row logout-action-row"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <div className="action-icon-box">
+              <LogOut size={16} />
+            </div>
+            <div className="sidebar-label-col logout-label-col">
+              <span className="logout-action-label">Logout</span>
+            </div>
+            {isCollapsed && (
+              <span className="sidebar-collapsed-tooltip">Logout</span>
+            )}
+          </button>
+        </div>
       </aside>
     </>
   );
 }
-
