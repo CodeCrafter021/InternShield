@@ -216,12 +216,6 @@ export default function Footer() {
               <Link to="/dashboard">System Status</Link>
             </div>
           </div>
-
-          <div className="liquid-footer__made-with">
-            <span>Crafted with</span>
-            <Heart size={14} className="liquid-footer__heart" fill="#f43f5e" />
-            <span>for students worldwide</span>
-          </div>
         </div>
       </div>
     </footer>
