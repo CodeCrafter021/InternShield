@@ -1,7 +1,8 @@
 import axios from "axios";
 
 // Backend base URL (set VITE_API_URL in Vercel / .env)
-export const API_BASE_URL = "https://internshield-backend-latest.onrender.com/" || "http://localhost:8080/api";
+const RAW = import.meta.env.VITE_API_URL || "https://internshield-backend-latest.onrender.com/api";
+export const API_BASE_URL = RAW.replace(/\/+$/, "");
 
 const api = axios.create({
   baseURL: API_BASE_URL,
