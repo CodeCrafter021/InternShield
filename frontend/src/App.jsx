@@ -1,55 +1,99 @@
-import React, { useState } from "react";
+import React, { useState, Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LiquidFilters from "./components/LiquidFilters.jsx";
 
-import Home from "./pages/Home.jsx";
-import About from "./pages/About.jsx";
-import Login from "./pages/Login.jsx";
-import Register from "./pages/Register.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import VerificationResult from "./pages/VerificationResult.jsx";
-import NotFound from "./pages/NotFound.jsx";
+// Route code-splitting with React.lazy for instant mobile page loading
+const Home = lazy(() => import("./pages/Home.jsx"));
+const About = lazy(() => import("./pages/About.jsx"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks.jsx"));
+const Login = lazy(() => import("./pages/Login.jsx"));
+const Register = lazy(() => import("./pages/Register.jsx"));
+const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const VerificationResult = lazy(() => import("./pages/VerificationResult.jsx"));
+const OAuthCallback = lazy(() => import("./pages/OAuthCallback.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
+
+// Lightweight non-blocking spinner while lazy route chunks load
+function RouteLoadingFallback() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--color-bg, #030712)",
+        gap: 12,
+      }}
+      aria-live="polite"
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          border: "3px solid rgba(56, 189, 248, 0.2)",
+          borderTopColor: "#38bdf8",
+          borderRadius: "50%",
+          animation: "route-spin 0.75s linear infinite",
+        }}
+      />
+      <span style={{ fontSize: "0.85rem", color: "#64748b" }}>Loading secure view...</span>
+      <style>{`
+        @keyframes route-spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 export default function App() {
-  const [booting, setBooting] = useState(true);
+  // Splash only on the first visit of a browser session (not on every reload/login)
+  const [booting, setBooting] = useState(() => !sessionStorage.getItem("is_booted"));
 
   if (booting) {
-    return <LoadingScreen onDone={() => setBooting(false)} />;
+    return <LoadingScreen onDone={() => { sessionStorage.setItem("is_booted", "1"); setBooting(false); }} />;
   }
 
   return (
     <>
-      {/* Global SVG Liquid Shaders & Displacement Maps */}
+      {/* Global SVG Liquid Shaders */}
       <LiquidFilters />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
 
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/verify/:companyId"
-          element={
-            <ProtectedRoute>
-              <VerificationResult />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/verify/:companyId"
+            element={
+              <ProtectedRoute>
+                <VerificationResult />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }
+

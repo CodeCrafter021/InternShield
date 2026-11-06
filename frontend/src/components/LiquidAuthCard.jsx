@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { startOAuth } from "../services/oauth.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import LiquidButton from "./LiquidButton.jsx";
 import "./LiquidAuthCard.css";
@@ -67,12 +68,6 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
 
   const pwdStrength = getPasswordStrength(password);
 
-  function handleFillDemo() {
-    setEmail("atharvawallapkar261@gmail.com");
-    setPassword("password123");
-    setError("");
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -116,21 +111,12 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
     }
   }
 
-  async function handleSocialLogin(provider) {
-    setIsLoading(true);
+  function handleSocialLogin(provider) {
     setError("");
     try {
-      // Simulate fast OAuth resolution for student demo
-      await login({ email: `student.${provider.toLowerCase()}@internshield.ai`, password: "password123" });
-      setIsSuccess(true);
-      setTimeout(() => {
-        if (onSuccess) onSuccess();
-        else navigate("/dashboard");
-      }, 500);
+      startOAuth(provider.toLowerCase()); // redirects to Google / GitHub
     } catch (err) {
-      setError(`Failed to authenticate with ${provider}.`);
-    } finally {
-      setIsLoading(false);
+      setError(err.message);
     }
   }
 
@@ -197,24 +183,6 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
           <span>Sign Up</span>
         </button>
       </div>
-
-      {/* Quick Fill Demo Credentials Chip (Sign In Only) */}
-      {activeTab === "signin" && (
-        <motion.div
-          className="demo-credentials-bar"
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <button
-            type="button"
-            className="demo-credentials-btn glass-pill"
-            onClick={handleFillDemo}
-          >
-            <Zap size={13} color="#38bdf8" />
-            <span>⚡ 1-Click Demo Account Autofill</span>
-          </button>
-        </motion.div>
-      )}
 
       {/* Fast SSO / Social Buttons */}
       <div className="liquid-auth-socials">

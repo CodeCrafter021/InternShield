@@ -3,111 +3,145 @@ package com.internshield.backend.controller;
 import com.internshield.backend.model.User;
 import com.internshield.backend.repository.UserRepository;
 import com.internshield.backend.security.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.internshield.backend.security.OAuthService;
+import com.internshield.backend.security.OAuthService.OAuthProfile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final Set<String> PROVIDERS = Set.of("google", "github");
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+    private final OAuthService oAuthService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public AuthController(UserRepository userRepository, JwtUtil jwtUtil,
+                          PasswordEncoder passwordEncoder, OAuthService oAuthService) {
+        this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
+        this.oAuthService = oAuthService;
+    }
 
-    // Register
+    // ── Register ──
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        String password = body.get("password");
-        String name = body.get("name");
+        String email = clean(body.get("email")).toLowerCase();
+        String password = body.get("password") == null ? "" : body.get("password");
+        String name = clean(body.get("name"));
 
-        if (userRepository.existsByEmail(email)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email already exists"));
-        }
+        if (!EMAIL.matcher(email).matches()) return error("Enter a valid email address");
+        if (password.length() < 8) return error("Password must be at least 8 characters");
+        if (userRepository.existsByEmail(email)) return error("An account with this email already exists");
 
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setName(name);
+        user.setName(name.isEmpty() ? email.split("@")[0] : name);
+        user.setProvider("password");
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(email);
-        return ResponseEntity.ok(Map.of(
-            "token", token,
-            "email", email,
-            "name", name != null ? name : ""
-        ));
+        return ResponseEntity.ok(session(user));
     }
 
-    // Login
+    // ── Login ──
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        String password = body.get("password");
+        String email = clean(body.get("email")).toLowerCase();
+        String password = body.get("password") == null ? "" : body.get("password");
 
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        User user = userRepository.findByEmail(email).orElse(null);
+        // Same message for "no such user" and "wrong password" -> no account enumeration
+        if (user == null || user.getPassword() == null
+                || !passwordEncoder.matches(password, user.getPassword())) {
+            if (user != null && user.getPassword() == null) {
+                return error("This account uses " + user.getProvider() + " sign-in. Use that button instead.");
+            }
+            return error("Invalid email or password");
         }
-
-        User user = userOpt.get();
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Wrong password"));
-        }
-
-        String token = jwtUtil.generateToken(email);
-        return ResponseEntity.ok(Map.of(
-            "token", token,
-            "email", email,
-            "name", user.getName() != null ? user.getName() : ""
-        ));
+        return ResponseEntity.ok(session(user));
     }
 
-    // Delete Account
-    @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteAccount(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
+    // ── Google / GitHub ──
+    @PostMapping("/oauth/{provider}")
+    public ResponseEntity<?> oauth(@PathVariable String provider, @RequestBody Map<String, String> body) {
+        if (!PROVIDERS.contains(provider)) return error("Unsupported provider");
+        String code = clean(body.get("code"));
+        String redirectUri = clean(body.get("redirectUri"));
+        if (code.isEmpty() || redirectUri.isEmpty()) return error("Missing code");
+
+        OAuthProfile p;
+        try {
+            p = oAuthService.fetchProfile(provider, code, redirectUri);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return error(e.getMessage());
+        } catch (Exception e) {
+            return error("Sign-in with " + provider + " failed. Please try again.");
         }
 
-        String email = jwtUtil.extractEmail(token);
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-        }
+        // Existing account with the same (provider-verified) email is reused, otherwise create one
+        User user = userRepository.findByEmail(p.email()).orElseGet(() -> {
+            User u = new User();
+            u.setEmail(p.email());
+            u.setProvider(p.provider());
+            u.setProviderId(p.providerId());
+            return u;
+        });
+        if (user.getName() == null || user.getName().isBlank()) user.setName(p.name());
+        user.setAvatarUrl(p.avatar());
+        userRepository.save(user);
 
-        userRepository.delete(userOpt.get());
-        return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
+        return ResponseEntity.ok(session(user));
     }
 
-    // Get Profile
+    // ── Profile ──
     @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        if (!jwtUtil.validateToken(token)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
-        }
+    public ResponseEntity<?> profile(Authentication auth) {
+        return userRepository.findByEmail(auth.getName())
+                .<ResponseEntity<?>>map(u -> ResponseEntity.ok(profileMap(u)))
+                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "User not found")));
+    }
 
-        String email = jwtUtil.extractEmail(token);
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-        }
+    // ── Delete account (removes everything we hold about the user) ──
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> delete(Authentication auth) {
+        userRepository.findByEmail(auth.getName()).ifPresent(userRepository::delete);
+        return ResponseEntity.ok(Map.of("message", "Account deleted"));
+    }
 
-        User user = userOpt.get();
-        return ResponseEntity.ok(Map.of(
-            "email", user.getEmail(),
-            "name", user.getName() != null ? user.getName() : ""
-        ));
+    // ── helpers ──
+    private Map<String, Object> session(User u) {
+        Map<String, Object> m = profileMap(u);
+        m.put("token", jwtUtil.generateToken(u.getEmail()));
+        return m;
+    }
+
+    private Map<String, Object> profileMap(User u) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("email", u.getEmail());
+        m.put("name", u.getName() == null ? "" : u.getName());
+        m.put("avatar", u.getAvatarUrl() == null ? "" : u.getAvatarUrl());
+        m.put("provider", u.getProvider() == null ? "password" : u.getProvider());
+        return m;
+    }
+
+    private static ResponseEntity<?> error(String msg) {
+        return ResponseEntity.badRequest().body(Map.of("error", msg));
+    }
+
+    private static String clean(String s) {
+        return s == null ? "" : s.trim();
     }
 }

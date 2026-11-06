@@ -168,7 +168,7 @@ Before running the project, ensure you have:
 
 - Node.js 18+
 - npm or yarn
-- Java 17+
+- Java 25 (LTS)+
 - Maven
 - PostgreSQL (for full backend functionality)
 

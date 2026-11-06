@@ -25,6 +25,12 @@ export function AuthProvider({ children }) {
     return session;
   }
 
+  async function oauthLogin(provider, code, redirectUri) {
+    const session = await authService.oauthLogin(provider, code, redirectUri);
+    setUser(session);
+    return session;
+  }
+
   async function updateProfile(profileData) {
     if (!user) throw new Error("No active user session.");
     const updated = await authService.updateUserProfile(user.id, profileData);
@@ -50,6 +56,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     register,
+    oauthLogin,
     logout,
     updateProfile,
     requestOtp,

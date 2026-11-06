@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/companies")
-@CrossOrigin(origins = "*")
 public class CompanyController
 {
     
@@ -35,6 +34,13 @@ public class CompanyController
     public List<Company> getAllCompanies() {
         return companyRepository.findAll();
     }
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getById(@PathVariable Long id) {
+        return companyRepository.findById(id)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/search")
     public ResponseEntity<?> searchCompanies(@RequestParam String query) {
         List<Company> results = companyRepository.findByCompanyNameContainingIgnoreCase(query);
@@ -48,7 +54,7 @@ public class CompanyController
             if (reportCount >= 5) company.setSafetyStatus("Red");
             else if (reportCount >= 1) company.setSafetyStatus("Yellow");
             else company.setSafetyStatus("Green");
-            return ResponseEntity.ok(companyRepository.save(company));
+            return ResponseEntity.ok(company); // computed only, never written by anonymous callers
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -67,7 +73,6 @@ public class CompanyController
             } else {
                 company.setSafetyStatus("Green");
             }
-            companyRepository.save(company);
             return ResponseEntity.ok(company);
         } else
         {

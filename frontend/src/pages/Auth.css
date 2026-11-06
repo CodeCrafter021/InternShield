@@ -266,3 +266,7 @@
     display: none;
   }
 }
+
+/* Auth pages no longer have the top navbar -> centre the card vertically */
+.auth-page-wrapper { min-height: 100vh; display: flex; align-items: center; }
+.auth-page-wrapper .auth-layout { padding-top: 24px; padding-bottom: 24px; }

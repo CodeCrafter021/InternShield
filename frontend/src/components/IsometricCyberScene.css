@@ -57,7 +57,7 @@
 }
 
 .iso-sonar-ring {
-  transform-origin: 300px 350px;
+  transform-origin: 300px 295px;
 }
 
 .iso-sonar-ring--1 {
@@ -132,7 +132,7 @@
 }
 
 .iso-node-group--bottom {
-  top: 245px;
+  top: 200px;
   left: 235px;
   z-index: 7;
 }
@@ -545,7 +545,12 @@
   z-index: 12;
 }
 
-/* ── Responsive ── */
+/* Specific position for bottom hub so Zero-Fee Protocol sits cleanly below its platform without overlap */
+.iso-node-group--bottom .iso-tag {
+  bottom: -20px;
+}
+
+/* ── Responsive & Mobile Android Smoothness ── */
 @media (max-width: 1024px) {
   .iso-scene-wrap {
     width: 460px;
@@ -554,11 +559,28 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (pointer: coarse) {
   .iso-scene-wrap {
-    width: 340px;
-    height: 320px;
-    transform: scale(0.7);
+    width: 320px;
+    height: 300px;
+    transform: scale(0.68);
     margin: 0 auto;
+    contain: layout paint;
+  }
+
+  .iso-ambient-glow {
+    animation: none !important;
+    filter: blur(24px) !important;
+  }
+
+  .iso-sonar-ring {
+    animation: none !important;
+    opacity: 0.25 !important;
+  }
+
+  .iso-data-dot,
+  .iso-data-packet {
+    display: none !important;
   }
 }
+

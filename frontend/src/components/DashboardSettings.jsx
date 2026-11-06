@@ -13,25 +13,17 @@ import {
   KeyRound,
   Eye,
   EyeOff,
-  Copy,
-  Check,
-  RefreshCw,
   Globe,
   Laptop,
   Radio,
   ShieldCheck,
   Zap,
-  Download,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   getUserSettings,
   updateUserSettings,
 } from "../services/authService.js";
-import {
-  exportAuditHistory,
-  clearAuditData,
-} from "../services/verificationService.js";
 import LiquidButton from "./LiquidButton.jsx";
 import "./DashboardSettings.css";
 
@@ -46,7 +38,9 @@ const AVATAR_PRESETS = [
 
 export default function DashboardSettings({ defaultTab = "security", onClose }) {
   const { user, requestOtp, resetPassword } = useAuth();
-  const [activeTab, setActiveTab] = useState(defaultTab === "profile" ? "security" : defaultTab);
+  const [activeTab, setActiveTab] = useState(
+    defaultTab === "profile" || defaultTab === "developer" ? "security" : defaultTab
+  );
   const [settings, setSettings] = useState(getUserSettings());
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -93,7 +87,7 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
           </div>
           <h2 className="settings-suite__title">System Settings</h2>
           <p className="settings-suite__sub">
-            Configure authentication credentials with OTP, 2FA encryption, active device sessions, alert filters, and developer API keys.
+            Configure authentication credentials with OTP, 2FA encryption, active device sessions, and alert filters.
           </p>
         </div>
       </div>
@@ -133,14 +127,6 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
             <Bell size={18} />
             <span>Alerts & Notifications</span>
           </button>
-
-          <button
-            className={`settings-nav__item ${activeTab === "developer" ? "settings-nav__item--active" : ""}`}
-            onClick={() => setActiveTab("developer")}
-          >
-            <Code2 size={18} />
-            <span>Developer API & Data</span>
-          </button>
         </div>
 
         {/* Tab Viewport */}
@@ -172,14 +158,6 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
             {activeTab === "notifications" && (
               <NotificationsTab
                 key="notifications"
-                settings={settings}
-                onSave={handleSaveSettings}
-                showToast={showToast}
-              />
-            )}
-            {activeTab === "developer" && (
-              <DeveloperTab
-                key="developer"
                 settings={settings}
                 onSave={handleSaveSettings}
                 showToast={showToast}
@@ -987,133 +965,6 @@ function NotificationsTab({ settings, onSave, showToast }) {
           </LiquidButton>
         </div>
       </form>
-    </motion.div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 6. DEVELOPER API & DATA TAB
-// ══════════════════════════════════════════════════════════════════════════════
-function DeveloperTab({ settings, onSave, showToast }) {
-  const [apiKey, setApiKey] = useState(settings.apiKey || "ishield_live_9f8c2b71a0e4d6");
-  const [showKey, setShowKey] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  function handleCopy() {
-    navigator.clipboard.writeText(apiKey);
-    setCopied(true);
-    showToast("API Key copied to clipboard!");
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  function handleRegenerate() {
-    const newKey = `ishield_live_${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 6)}`;
-    setApiKey(newKey);
-    onSave({ apiKey: newKey });
-    showToast("New API key generated!");
-  }
-
-  function handleExportData() {
-    exportAuditHistory();
-    showToast("Cryptographic audit logs downloaded as JSON!");
-  }
-
-  function handleClearData() {
-    clearAuditData();
-    showToast("Local scan logs and audit history successfully wiped.");
-  }
-
-  return (
-    <motion.div
-      className="tab-panel"
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -12 }}
-      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-    >
-      <div className="tab-panel__header">
-        <div>
-          <h3>Student Developer API & Data Management</h3>
-          <p>Access our programmatic verification endpoints or export your audit logs.</p>
-        </div>
-      </div>
-
-      {/* API Key Box */}
-      <div className="developer-api-box glass-card">
-        <div className="api-box__header">
-          <div>
-            <strong>Personal Verification API Key</strong>
-            <p>1,000 free API verification calls / day for student open-source projects.</p>
-          </div>
-          <span className="api-status-badge">🟢 Rate Limit: Normal</span>
-        </div>
-
-        <div className="api-key-field">
-          <code>{showKey ? apiKey : "••••••••••••••••••••••••••••••••••••"}</code>
-          <div className="api-key-actions">
-            <button
-              type="button"
-              className="api-action-btn"
-              onClick={() => setShowKey(!showKey)}
-              title={showKey ? "Hide Key" : "Show Key"}
-            >
-              {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-            <button
-              type="button"
-              className="api-action-btn"
-              onClick={handleCopy}
-              title="Copy to Clipboard"
-            >
-              {copied ? <Check size={16} color="#22c55e" /> : <Copy size={16} />}
-            </button>
-            <button
-              type="button"
-              className="api-action-btn"
-              onClick={handleRegenerate}
-              title="Regenerate API Key"
-            >
-              <RefreshCw size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Export & Data Management */}
-      <div className="data-management-grid">
-        <div className="data-action-card glass-card">
-          <div className="data-card-icon">
-            <Download size={22} color="#38bdf8" />
-          </div>
-          <div>
-            <h4>Export Scan History (JSON)</h4>
-            <p>Download a cryptographic record of all company verifications and flagged offers.</p>
-          </div>
-          <LiquidButton
-            variant="cyan"
-            size="sm"
-            showArrow={false}
-            onClick={handleExportData}
-          >
-            Download Records
-          </LiquidButton>
-        </div>
-      </div>
-
-      {/* Danger Zone */}
-      <div className="danger-zone glass-card">
-        <h4>⚠️ Danger Zone</h4>
-        <p>Permanently remove your scan history and delete your cached student verification records.</p>
-        <div className="danger-zone__actions">
-          <button
-            type="button"
-            className="danger-btn"
-            onClick={handleClearData}
-          >
-            Clear Local Scan History
-          </button>
-        </div>
-      </div>
     </motion.div>
   );
 }

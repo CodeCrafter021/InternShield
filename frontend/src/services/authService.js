@@ -1,5 +1,7 @@
 // ============================================================================
-// authService.js - Connected to Real Backend API
+// authService.js — talks ONLY to the real backend.
+// (The old localStorage "fallback" stored plaintext passwords and let anyone in
+//  when the server was down. It has been removed on purpose.)
 // ============================================================================
 
 import api from "./api";
@@ -7,58 +9,77 @@ import api from "./api";
 const TOKEN_KEY = "internshield_token";
 const SESSION_KEY = "internshield_session";
 
+function friendlyError(err, fallback) {
+  const msg = err?.response?.data?.error || err?.response?.data?.message;
+  if (msg) return msg;
+  if (!err?.response) {
+    return "Cannot reach the server. It may be waking up — wait 30 seconds and try again.";
+  }
+  return fallback;
+}
+
+function saveSession(data, fallbackEmail = "") {
+  const { token, ...user } = data;
+  const session = {
+    id: user.email || fallbackEmail,
+    name: user.name || (user.email || fallbackEmail).split("@")[0],
+    email: user.email || fallbackEmail,
+    avatar: user.avatar || "",
+    provider: user.provider || "password",
+    role: "STUDENT",
+  };
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return session;
+}
+
 // ── Register ──
 export async function register(arg1, arg2, arg3) {
-  let name, email, password;
+  const isObj = typeof arg1 === "object" && arg1 !== null;
+  const name = isObj ? arg1.name : arg1;
+  const email = isObj ? arg1.email : arg2;
+  const password = isObj ? arg1.password : arg3;
 
-  if (typeof arg1 === "object" && arg1 !== null) {
-    name = arg1.name;
-    email = arg1.email;
-    password = arg1.password;
-  } else {
-    name = arg1;
-    email = arg2;
-    password = arg3;
+  if (!email || !password) throw new Error("Email and password are required.");
+  const normalizedEmail = email.trim().toLowerCase();
+
+  try {
+    const res = await api.post("/auth/register", {
+      name: name ? name.trim() : normalizedEmail.split("@")[0],
+      email: normalizedEmail,
+      password,
+    });
+    return saveSession(res.data, normalizedEmail);
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not create the account."));
   }
-
-  const response = await api.post("/auth/register", { name, email, password });
-  const { token, ...user } = response.data;
-
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(SESSION_KEY, JSON.stringify({
-    id: user.email,
-    name: user.name,
-    email: user.email,
-    role: "STUDENT"
-  }));
-
-  return getSession();
 }
 
 // ── Login ──
 export async function login(arg1, arg2) {
-  let email, password;
+  const isObj = typeof arg1 === "object" && arg1 !== null;
+  const email = isObj ? arg1.email : arg1;
+  const password = isObj ? arg1.password : arg2;
 
-  if (typeof arg1 === "object" && arg1 !== null) {
-    email = arg1.email;
-    password = arg1.password;
-  } else {
-    email = arg1;
-    password = arg2;
+  if (!email || !password) throw new Error("Email and password are required.");
+  const normalizedEmail = email.trim().toLowerCase();
+
+  try {
+    const res = await api.post("/auth/login", { email: normalizedEmail, password });
+    return saveSession(res.data, normalizedEmail);
+  } catch (err) {
+    throw new Error(friendlyError(err, "Invalid email or password."));
   }
+}
 
-  const response = await api.post("/auth/login", { email, password });
-  const { token, ...user } = response.data;
-
-  localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(SESSION_KEY, JSON.stringify({
-    id: user.email,
-    name: user.name,
-    email: user.email,
-    role: "STUDENT"
-  }));
-
-  return getSession();
+// ── Google / GitHub (authorization-code flow, finished on the backend) ──
+export async function oauthLogin(provider, code, redirectUri) {
+  try {
+    const res = await api.post(`/auth/oauth/${provider}`, { code, redirectUri });
+    return saveSession(res.data);
+  } catch (err) {
+    throw new Error(friendlyError(err, `Could not sign in with ${provider}.`));
+  }
 }
 
 // ── Logout ──
@@ -67,37 +88,33 @@ export function logout() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-// ── Get Session ──
 export function getSession() {
-  const raw = localStorage.getItem(SESSION_KEY);
   try {
+    const raw = localStorage.getItem(SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-// ── Get Token ──
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
 // ── Delete Account ──
 export async function deleteAccount() {
-  const token = getToken();
-  await api.delete("/auth/delete", {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  logout();
+  try {
+    await api.delete("/auth/delete");
+  } finally {
+    logout();
+  }
 }
 
-// ── Update Profile ──
+// ── Update Profile (display-only fields, kept on this device) ──
 export async function updateUserProfile(userId, profileData) {
-  const token = getToken();
-  const currentSession = getSession() || {};
-  const updatedSession = { ...currentSession, ...profileData };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
-  return updatedSession;
+  const updated = { ...(getSession() || {}), ...profileData };
+  localStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+  return updated;
 }
 
 // ── Password Reset (OTP based - local) ──

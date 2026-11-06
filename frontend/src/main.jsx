@@ -4,6 +4,9 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import "./styles/index.css";
+import { warmUpBackend } from "./services/api.js";
+
+warmUpBackend();
 
 // Mount the app. BrowserRouter enables page-based navigation (React Router).
 // AuthProvider wraps everything so any component can read "who is logged in".

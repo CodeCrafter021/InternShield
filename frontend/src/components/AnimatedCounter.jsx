@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, memo } from "react";
 import { motion, useInView } from "framer-motion";
 
 // Animates a number counting up from 0 to `value` (or `target`) once the element scrolls into view
-export default function AnimatedCounter({ value, target, duration = 1.1, suffix = "" }) {
+function AnimatedCounter({ value, target, duration = 1.1, suffix = "" }) {
   const targetVal = Number(value ?? target ?? 0);
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
@@ -26,9 +26,10 @@ export default function AnimatedCounter({ value, target, duration = 1.1, suffix 
 
   return (
     <motion.span ref={ref}>
-      {display}
+      {Number(display).toLocaleString("en-IN")}
       {suffix}
     </motion.span>
   );
 }
 
+export default memo(AnimatedCounter);

@@ -16,14 +16,14 @@ export default function LoadingScreen({ onDone }) {
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress((p) => {
-        const next = Math.min(100, p + Math.random() * 12 + 2);
+        const next = Math.min(100, p + Math.random() * 20 + 12);
         if (next >= 100) {
           clearInterval(interval);
-          setTimeout(onDone, 500);
+          setTimeout(onDone, 150);
         }
         return next;
       });
-    }, 120);
+    }, 70);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

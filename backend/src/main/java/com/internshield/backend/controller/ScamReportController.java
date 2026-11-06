@@ -9,7 +9,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
-@CrossOrigin(origins = "*")
 public class ScamReportController {
 
     @Autowired
@@ -18,6 +17,12 @@ public class ScamReportController {
     // 1. To submit a new Sakam report (POST)
     @PostMapping
     public ScamReport submitReport(@RequestBody ScamReport scamReport) {
+        // Reports are anonymous: we deliberately do NOT store who submitted them.
+        scamReport.setId(null);
+        scamReport.setCompanyName(limit(scamReport.getCompanyName(), 150));
+        scamReport.setScamType(limit(scamReport.getScamType(), 100));
+        scamReport.setDescription(limit(scamReport.getDescription(), 2000));
+        scamReport.setContactInfo(limit(scamReport.getContactInfo(), 200));
         return scamReportRepository.save(scamReport);
     }
 
@@ -30,5 +35,11 @@ public class ScamReportController {
     @GetMapping("/company/{companyId}")
     public List<ScamReport> getReportsByCompany(@PathVariable Long companyId) {
         return scamReportRepository.findByCompanyId(companyId);
+    }
+
+    private static String limit(String s, int max) {
+        if (s == null) return null;
+        s = s.trim();
+        return s.length() > max ? s.substring(0, max) : s;
     }
 }

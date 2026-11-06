@@ -37,15 +37,15 @@ const AVATAR_PRESETS = [
 export default function DashboardProfile({ onSaveProfile }) {
   const { user, updateProfile } = useAuth();
 
-  const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [university, setUniversity] = useState(user?.university || "");
-  const [major, setMajor] = useState(user?.major || "");
-  const [gradYear, setGradYear] = useState(user?.gradYear || "");
-  const [targetRole, setTargetRole] = useState(user?.targetRole || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [github, setGithub] = useState(user?.github || "");
-  const [linkedin, setLinkedin] = useState(user?.linkedin || "");
+  const [name, setName] = useState(user?.name || "Atharva Wallapkar");
+  const [email, setEmail] = useState(user?.email || "atharvawallapkar261@gmail.com");
+  const [university, setUniversity] = useState(user?.university || "Indian Institute of Technology, Bombay");
+  const [major, setMajor] = useState(user?.major || "Computer Science & Engineering");
+  const [gradYear, setGradYear] = useState(user?.gradYear || "2027");
+  const [targetRole, setTargetRole] = useState(user?.targetRole || "Full Stack & Cloud Security Intern");
+  const [phone, setPhone] = useState(user?.phone || "+91 98765 43210");
+  const [github, setGithub] = useState(user?.github || "https://github.com/atharva-w");
+  const [linkedin, setLinkedin] = useState(user?.linkedin || "https://linkedin.com/in/atharva-wallapkar");
   const [bio, setBio] = useState(
     user?.bio ||
       "Passionate undergraduate researcher interested in distributed systems, application security, and verified internships."

@@ -1,0 +1,5 @@
+companyName,domain,cin,gstNumber,mcaRegistered,safetyStatus,category,sourceUrl,verifiedOn
+# ADD ONLY companies YOU have verified. Fill cin from the MCA "View Company Master Data" page, put that page/careers page in sourceUrl.
+Tata Consultancy Services,tcs.com,,,true,Green,IT Services,https://www.tcs.com/careers,
+Infosys,infosys.com,,,true,Green,IT Services,https://www.infosys.com/careers,
+Wipro,wipro.com,,,true,Green,IT Services,https://careers.wipro.com,
