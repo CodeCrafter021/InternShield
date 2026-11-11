@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { waitForBackend } from "./api";
 import { userKey, purgeUserData } from "./userStorage";
 
 const TOKEN_KEY = "internshield_token";
@@ -59,7 +59,7 @@ export async function register(arg1, arg2, arg3) {
 
   if (!email || !password) throw new Error("Email and password are required.");
   const normalizedEmail = email.trim().toLowerCase();
-
+  await waitForBackend();
   try {
     const res = await api.post("/auth/register", {
       name: name ? name.trim() : normalizedEmail.split("@")[0],
@@ -80,7 +80,7 @@ export async function login(arg1, arg2) {
 
   if (!email || !password) throw new Error("Email and password are required.");
   const normalizedEmail = email.trim().toLowerCase();
-
+  await waitForBackend();
   try {
     const res = await api.post("/auth/login", { email: normalizedEmail, password });
     return saveSession(res.data, normalizedEmail);
