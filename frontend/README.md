@@ -31,7 +31,9 @@ Every service file (`authService.js`, `verificationService.js`) has the real
 `api.post(...)` / `api.get(...)` call commented directly above the mock
 logic it replaces — the function signatures won't change, so no other file
 needs to be touched. Set `VITE_API_URL` in a `.env` file (see
-`.env.example`) once the backend is running.
+`.env.example`) once the backend is running. It can be the backend origin
+(`https://host.example`) or the API root ending in `/api`; the frontend
+normalizes either value to the `/api` path used by Spring Boot.
 
 ## Folder structure
 

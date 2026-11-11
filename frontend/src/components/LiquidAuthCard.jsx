@@ -41,6 +41,7 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isWaitingForServer, setIsWaitingForServer] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   // Password strength calculation
@@ -86,18 +87,23 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
         setError("Passwords do not match.");
         return;
       }
-      if (password.length < 6) {
-        setError("Password must be at least 6 characters.");
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters.");
         return;
       }
     }
 
     setIsLoading(true);
+    setIsWaitingForServer(false);
     try {
       if (activeTab === "signin") {
-        await login({ email: email.trim(), password });
+        await login({ email: email.trim(), password }, {
+          onWaiting: () => setIsWaitingForServer(true),
+        });
       } else {
-        await register({ name: name.trim(), email: email.trim(), password });
+        await register({ name: name.trim(), email: email.trim(), password }, {
+          onWaiting: () => setIsWaitingForServer(true),
+        });
       }
       setIsSuccess(true);
       setTimeout(() => {
@@ -108,6 +114,7 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
       setError(err?.message || "Authentication failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
+      setIsWaitingForServer(false);
     }
   }
 
@@ -314,6 +321,7 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
               onChange={(e) => setPassword(e.target.value)}
               className="liquid-input"
               required
+              minLength={activeTab === "signup" ? 8 : undefined}
             />
             <label htmlFor="auth-password" className="liquid-input-label">
               Password
@@ -345,7 +353,7 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
                 <span className="strength-label" style={{ color: pwdStrength.color }}>
                   Security: {pwdStrength.label}
                 </span>
-                <span className="strength-hint">Min 8 chars with mixed case & numbers</span>
+                <span className="strength-hint">At least 8 characters</span>
               </div>
             </motion.div>
           )}
@@ -394,7 +402,7 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
               <CheckCircle2 size={18} /> Verified & Access Granted
             </span>
           ) : isLoading ? (
-            "Authenticating..."
+            isWaitingForServer ? "Waking secure server..." : "Authenticating..."
           ) : activeTab === "signin" ? (
             "Sign In to Dashboard"
           ) : (

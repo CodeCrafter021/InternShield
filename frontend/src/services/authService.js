@@ -51,15 +51,19 @@ function saveSession(data, fallbackEmail = "") {
 }
 
 // ── Register ──
-export async function register(arg1, arg2, arg3) {
+export async function register(arg1, arg2, arg3, arg4) {
   const isObj = typeof arg1 === "object" && arg1 !== null;
   const name = isObj ? arg1.name : arg1;
   const email = isObj ? arg1.email : arg2;
   const password = isObj ? arg1.password : arg3;
+  const options = isObj ? arg2 : arg4;
 
   if (!email || !password) throw new Error("Email and password are required.");
   const normalizedEmail = email.trim().toLowerCase();
-  await waitForBackend();
+  const backendReady = await waitForBackend({ onWaiting: options?.onWaiting });
+  if (!backendReady) {
+    throw new Error("The server is taking longer than usual to start. Please try again shortly.");
+  }
   try {
     const res = await api.post("/auth/register", {
       name: name ? name.trim() : normalizedEmail.split("@")[0],
@@ -73,14 +77,18 @@ export async function register(arg1, arg2, arg3) {
 }
 
 // ── Login ──
-export async function login(arg1, arg2) {
+export async function login(arg1, arg2, arg3) {
   const isObj = typeof arg1 === "object" && arg1 !== null;
   const email = isObj ? arg1.email : arg1;
   const password = isObj ? arg1.password : arg2;
+  const options = isObj ? arg2 : arg3;
 
   if (!email || !password) throw new Error("Email and password are required.");
   const normalizedEmail = email.trim().toLowerCase();
-  await waitForBackend();
+  const backendReady = await waitForBackend({ onWaiting: options?.onWaiting });
+  if (!backendReady) {
+    throw new Error("The server is taking longer than usual to start. Please try again shortly.");
+  }
   try {
     const res = await api.post("/auth/login", { email: normalizedEmail, password });
     return saveSession(res.data, normalizedEmail);

@@ -13,14 +13,14 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  async function login(arg1, arg2) {
-    const session = await authService.login(arg1, arg2);
+  async function login(arg1, arg2, options) {
+    const session = await authService.login(arg1, arg2, options);
     setUser(session);
     return session;
   }
 
-  async function register(arg1, arg2, arg3) {
-    const session = await authService.register(arg1, arg2, arg3);
+  async function register(arg1, arg2, arg3, options) {
+    const session = await authService.register(arg1, arg2, arg3, options);
     setUser(session);
     return session;
   }
@@ -72,4 +72,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used inside an <AuthProvider>");
   return ctx;
 }
-
