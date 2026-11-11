@@ -70,7 +70,7 @@ export default function DashboardSidebar({
     },
     {
       id: "analytics",
-      label: "Security Analytics",
+      label: "Analytics",
       icon: BarChart3,
       badge: "Stats",
       badgeType: "ai",
@@ -92,7 +92,7 @@ export default function DashboardSidebar({
     },
     {
       id: "profile",
-      label: "Student Profile",
+      label: "Profile",
       icon: User,
     },
     {

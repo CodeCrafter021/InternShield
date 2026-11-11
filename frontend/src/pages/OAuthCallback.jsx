@@ -9,6 +9,7 @@ export default function OAuthCallback() {
   const { oauthLogin } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [slow, setSlow] = useState(false);
   const ran = useRef(false); // StrictMode runs effects twice; a code can be used only once
 
   useEffect(() => {
@@ -25,7 +26,8 @@ export default function OAuthCallback() {
 
     oauthLogin(provider, code, redirectUriFor(provider))
       .then(() => navigate("/dashboard", { replace: true }))
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => clearTimeout(slowTimer));
   }, []); // eslint-disable-line
 
   return (
@@ -38,7 +40,14 @@ export default function OAuthCallback() {
           </button>
         </>
       ) : (
-        <p>Signing you in…</p>
+        <>
+          <p>Signing you in…</p>
+          {slow && (
+            <p style={{ maxWidth: 360, textAlign: "center", fontSize: ".85rem", color: "#8f94a9" }}>
+              The server was asleep and is waking up. This can take 1–2 minutes the first time. Please don&apos;t close this page.
+            </p>
+          )}
+        </>
       )}
     </div>
   );

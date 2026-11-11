@@ -1,15 +1,10 @@
-// ============================================================================
-// verificationService.js — Real-Time Verification Engine & Data Layer
-//
-// Manages real company verification checks, MCA directory resolution,
-// domain heuristics, community threat reports, and persistent audit logs.
-// ============================================================================
-
 import api from "./api";
+import { userKey } from "./userStorage";
 
 const CHECKS_KEY = "internshield_checks_history";
 const ALERTS_KEY = "internshield_community_alerts";
 const COMPANIES_KEY = "internshield_companies_db";
+const SEARCH_KEY = "internshield_search_log";
 
 // Fake sample companies / alerts are shown ONLY when VITE_DEMO_DATA=true (college demo).
 // In production the dashboard starts empty and fills with the user's real activity.
@@ -139,10 +134,10 @@ const DEFAULT_ALERTS = [
 
 // ── Real Local Database Helpers ──
 function getCompaniesDB() {
-  const raw = localStorage.getItem(COMPANIES_KEY);
+  const raw = localStorage.getItem(userKey(COMPANIES_KEY));
   if (!raw) {
     const initial = DEMO ? DEFAULT_COMPANIES : [];
-    localStorage.setItem(COMPANIES_KEY, JSON.stringify(initial));
+    localStorage.setItem(userKey(COMPANIES_KEY), JSON.stringify(initial));
     return initial;
   }
   try {
@@ -153,11 +148,11 @@ function getCompaniesDB() {
 }
 
 function saveCompaniesDB(companies) {
-  localStorage.setItem(COMPANIES_KEY, JSON.stringify(companies));
+  localStorage.setItem(userKey(COMPANIES_KEY), JSON.stringify(companies));
 }
 
 function getChecksHistoryDB() {
-  const raw = localStorage.getItem(CHECKS_KEY);
+  const raw = localStorage.getItem(userKey(CHECKS_KEY));
   if (!raw) {
     const initial = (DEMO ? DEFAULT_COMPANIES : []).map((c) => ({
       id: c.id,
@@ -169,7 +164,7 @@ function getChecksHistoryDB() {
       date: formatRelativeDate(c.verifiedDate),
       timestamp: c.verifiedDate,
     }));
-    localStorage.setItem(CHECKS_KEY, JSON.stringify(initial));
+    localStorage.setItem(userKey(CHECKS_KEY), JSON.stringify(initial));
     return initial;
   }
   try {
@@ -180,14 +175,14 @@ function getChecksHistoryDB() {
 }
 
 function saveChecksHistoryDB(checks) {
-  localStorage.setItem(CHECKS_KEY, JSON.stringify(checks));
+  localStorage.setItem(userKey(CHECKS_KEY), JSON.stringify(checks));
 }
 
 function getCommunityAlertsDB() {
-  const raw = localStorage.getItem(ALERTS_KEY);
+  const raw = localStorage.getItem(userKey(ALERTS_KEY));
   if (!raw) {
     const initial = DEMO ? DEFAULT_ALERTS : [];
-    localStorage.setItem(ALERTS_KEY, JSON.stringify(initial));
+    localStorage.setItem(userKey(ALERTS_KEY), JSON.stringify(initial));
     return initial;
   }
   try {
@@ -198,7 +193,7 @@ function getCommunityAlertsDB() {
 }
 
 function saveCommunityAlertsDB(alerts) {
-  localStorage.setItem(ALERTS_KEY, JSON.stringify(alerts));
+  localStorage.setItem(userKey(ALERTS_KEY), JSON.stringify(alerts));
 }
 
 function formatRelativeDate(dateStr) {
@@ -211,6 +206,23 @@ function formatRelativeDate(dateStr) {
   if (diffHours < 24) return `Today, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   if (diffHours < 48) return `Yesterday, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// ── Search log (this user's own searches, kept on this device only) ──
+export function getSearchLog() {
+  try {
+    return JSON.parse(localStorage.getItem(userKey(SEARCH_KEY)) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export function recordSearch(term, resultCount) {
+  const t = (term || "").trim();
+  if (!t) return;
+  const log = getSearchLog();
+  log.unshift({ term: t.slice(0, 80), results: resultCount, timestamp: new Date().toISOString() });
+  localStorage.setItem(userKey(SEARCH_KEY), JSON.stringify(log.slice(0, 300)));
 }
 
 // ── Backend company -> shape the UI expects ──
@@ -445,7 +457,11 @@ export async function getDashboardData() {
     metrics,
     velocityData,
     threatCategories,
-    recentChecks: history,
+    searches: getSearchLog(),
+    recentChecks: history.map((h) => ({
+      ...h,
+      date: h.timestamp ? formatRelativeDate(h.timestamp) : h.date,
+    })),
     communityAlerts: alerts,
   };
 }
@@ -660,9 +676,10 @@ export function exportAuditHistory() {
 
 // ── Clear Audit Data ──
 export function clearAuditData() {
-  localStorage.removeItem(CHECKS_KEY);
-  localStorage.removeItem(ALERTS_KEY);
-  localStorage.removeItem(COMPANIES_KEY);
+  localStorage.removeItem(userKey(CHECKS_KEY));
+  localStorage.removeItem(userKey(ALERTS_KEY));
+  localStorage.removeItem(userKey(COMPANIES_KEY));
+  localStorage.removeItem(userKey(SEARCH_KEY));
 }
 
 function delay(ms) {

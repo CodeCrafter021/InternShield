@@ -43,11 +43,13 @@ import {
   MetricSparkline,
 } from "../components/DashboardCharts.jsx";
 import DashboardProfile from "../components/DashboardProfile.jsx";
+import AnalyticsPanel from "../components/AnalyticsPanel.jsx";
 import DashboardSettings from "../components/DashboardSettings.jsx";
 import SafetyCertificateModal from "../components/SafetyCertificateModal.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   searchCompanies,
+  recordSearch,
   getDashboardData,
   submitThreatReport,
   analyzeOfferDocument,
@@ -91,6 +93,7 @@ export default function Dashboard() {
   const [threatCategories, setThreatCategories] = useState([]);
   const [recentChecks, setRecentChecks] = useState([]);
   const [communityAlerts, setCommunityAlerts] = useState([]);
+  const [searches, setSearches] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
   // Community report modal state
@@ -106,6 +109,7 @@ export default function Dashboard() {
       setThreatCategories(data.threatCategories || []);
       setRecentChecks(data.recentChecks || []);
       setCommunityAlerts(data.communityAlerts || []);
+      setSearches(data.searches || []);
     } catch (err) {
       console.error("Failed to load real dashboard data:", err);
     } finally {
@@ -138,6 +142,8 @@ export default function Dashboard() {
     try {
       const found = await searchCompanies(term);
       setResults(found);
+      recordSearch(term, found.length);
+      setSearches((prev) => [{ term: term.trim(), results: found.length, timestamp: new Date().toISOString() }, ...prev]);
       if (found.length === 0) {
         setSearchError(
           `No verified record for "${term.trim()}". This does NOT mean it is safe: check that the recruiter uses an official company email, and never pay any fee.`
@@ -679,39 +685,24 @@ export default function Dashboard() {
             {activeView === "analytics" && (
               <motion.div
                 key="view-analytics"
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.2 }}
                 className="portal-view"
               >
-                <div className="portal-header">
-                  <div className="dashboard__status-pill glass-pill">
-                    <BarChart3 size={14} color="#38bdf8" />
-                    <span>Security Analytics & Telemetry</span>
-                  </div>
-                  <h2>Statistical Intelligence & Threat Metrics</h2>
-                  <p>In-depth verification velocity, Gaussian score distributions, and threat category breakdowns.</p>
+                <div className="dash-head">
+                  <h1 className="dash-head__title">Analytics</h1>
+                  <p className="dash-head__sub">Your own activity: the companies you searched for and the verifications you ran.</p>
                 </div>
-
-                {/* Tier 1 Charts: Monthly Velocity Spline & Threat Vector Donut */}
-                <div className="dashboard__charts-grid" style={{ marginTop: 24 }}>
-                  <div className="chart-card velocity-chart-card">
-                    <ActivityChart data={velocityData} />
-                  </div>
-                  <div className="chart-card donut-chart-card">
-                    <ThreatDonutChart categories={threatCategories} />
-                  </div>
-                </div>
-
-                {/* Tier 2 Charts: Score Distribution & 7-Day Velocity */}
-                <div className="dashboard__charts-dual-grid" style={{ marginTop: 24 }}>
-                  <div className="chart-card histogram-chart-card">
-                    <ScoreDistributionChart />
-                  </div>
-                  <div className="chart-card weekly-chart-card">
-                    <WeeklyVelocityChart />
-                  </div>
-                </div>
+                <AnalyticsPanel
+                  checks={allRecentChecks}
+                  searches={searches}
+                  onStart={() => {
+                    setActiveView("dashboard");
+                    window.history.replaceState(null, "", "/dashboard?view=dashboard");
+                  }}
+                />
               </motion.div>
             )}
 
@@ -1191,6 +1182,11 @@ export default function Dashboard() {
               >
                 <DashboardProfile
                   onSaveProfile={handleSaveProfile}
+                  stats={{
+                    checked: allRecentChecks.length,
+                    searches: searches.length,
+                    flagged: allRecentChecks.filter((c) => c.risk === "HIGH").length,
+                  }}
                 />
               </motion.div>
             )}
@@ -1225,4 +1221,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

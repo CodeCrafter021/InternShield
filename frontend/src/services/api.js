@@ -1,14 +1,12 @@
 import axios from "axios";
 
 // Backend base URL (set VITE_API_URL in Vercel / .env)
-let RAW = (import.meta.env.VITE_API_URL || "https://internshield-backend-latest.onrender.com/api").replace(/\/+$/, "");
-if (!RAW.endsWith("/api")) RAW += "/api";
-export const API_BASE_URL = RAW;
+export const API_BASE_URL = "https://internshield-backend-latest.onrender.com/" || "http://localhost:8080/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  // Free hosts sleep when idle; the first request can take ~30-50s.
-  timeout: 45000,
+  // Free hosts sleep when idle; the first request can take 1-2 minutes (Spring Boot cold start).
+  timeout: 120000,
   headers: { "Content-Type": "application/json" },
 });
 

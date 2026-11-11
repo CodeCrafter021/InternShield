@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ShieldAlert, CheckCheck } from "lucide-react";
+import { userKey } from "../services/userStorage.js";
 import "./NotificationBell.css";
 
-const READ_KEY = "internshield_notif_read";
+const READ_BASE = "internshield_notif_read";
 
 function loadRead() {
   try {
-    return new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]"));
+    return new Set(JSON.parse(localStorage.getItem(userKey(READ_BASE)) || "[]"));
   } catch {
     return new Set();
   }
@@ -45,7 +46,7 @@ export default function NotificationBell({ alerts = [], onViewAll }) {
     items.forEach((a) => next.add(String(a.id)));
     setReadIds(next);
     try {
-      localStorage.setItem(READ_KEY, JSON.stringify([...next]));
+      localStorage.setItem(userKey(READ_BASE), JSON.stringify([...next]));
     } catch {}
   }
 

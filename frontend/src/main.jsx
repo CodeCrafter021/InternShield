@@ -6,10 +6,11 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import "./styles/index.css";
 import { warmUpBackend } from "./services/api.js";
 
+import { purgeLegacyKeys } from "./services/userStorage.js";
+
+purgeLegacyKeys();
 warmUpBackend();
 
-// Mount the app. BrowserRouter enables page-based navigation (React Router).
-// AuthProvider wraps everything so any component can read "who is logged in".
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
