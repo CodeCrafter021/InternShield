@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { redirectUriFor } from "../services/oauth.js";
+import { waitForBackend } from "../services/api.js";
 
 export default function OAuthCallback() {
   const { provider } = useParams();
@@ -24,17 +25,28 @@ export default function OAuthCallback() {
     if (params.get("error")) return setError("Sign-in was cancelled.");
     if (!code || !state || state !== saved) return setError("Invalid sign-in request. Please try again.");
 
-    oauthLogin(provider, code, redirectUriFor(provider))
-      .then(() => navigate("/dashboard", { replace: true }))
-      .catch((e) => setError(e.message))
-      .finally(() => clearTimeout(slowTimer));
+    (async () => {
+      // 1) wait until the (free, sleeping) server is really awake
+      const up = await waitForBackend({ onWaiting: () => setSlow(true) });
+      if (!up) {
+        setError("The server did not start in time. Please go back and try again in a minute.");
+        return;
+      }
+      // 2) only now send the one-time login code
+      try {
+        await oauthLogin(provider, code, redirectUriFor(provider));
+        navigate("/dashboard", { replace: true });
+      } catch (e) {
+        setError(e.message);
+      }
+    })();
   }, []); // eslint-disable-line
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, color: "#cbd5e1" }}>
       {error ? (
         <>
-          <p>{error}</p>
+          <p style={{ maxWidth: 420, textAlign: "center" }}>{error}</p>
           <button onClick={() => navigate("/login", { replace: true })} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer" }}>
             Back to login
           </button>
