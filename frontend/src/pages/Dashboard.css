@@ -7,7 +7,9 @@
 /* ── Portal Wrapper & Layout ── */
 .dashboard-portal-wrapper {
   height: 100vh;
+  height: 100dvh;
   max-height: 100vh;
+  max-height: 100dvh;
   display: flex;
   background-color: #070913;
   background-image:
@@ -33,9 +35,9 @@
 .dashboard-portal-main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
