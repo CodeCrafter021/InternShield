@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -27,12 +27,14 @@ import {
 import AnimatedBackground from "../components/AnimatedBackground.jsx";
 import Navbar from "../components/Navbar.jsx";
 import LiquidButton from "../components/LiquidButton.jsx";
-import IsometricCyberScene from "../components/IsometricCyberScene.jsx";
 import Footer from "../components/Footer.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useScrollReveal } from "../hooks/useScrollReveal.js";
+import { useConserveMotion } from "../hooks/useConserveMotion.js";
 import TypingText from "../components/TypingText.jsx";
 import "./Home.css";
+
+const IsometricCyberScene = lazy(() => import("../components/IsometricCyberScene.jsx"));
 
 // ── Hero dynamic typing phrases ──
 const HERO_PHRASES = [
@@ -163,6 +165,7 @@ export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth();
+  const conserveMotion = useConserveMotion();
 
   const featuresRef = useScrollReveal();
   const howRef = useScrollReveal();
@@ -207,7 +210,7 @@ export default function Home() {
       <Navbar />
 
       {/* ═══════════════ HERO SECTION ═══════════════ */}
-      <section className="hero container">
+      <section className={`hero container${conserveMotion ? " hero--static" : ""}`}>
         {/* Left Column — Content & Quick Search */}
         <motion.div
           className="hero__left"
@@ -286,14 +289,18 @@ export default function Home() {
         </motion.div>
 
         {/* Right Column — 3D Cyber Vision Scene */}
-        <motion.div
-          className="hero__right"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-        >
-          <IsometricCyberScene />
-        </motion.div>
+        {!conserveMotion && (
+          <motion.div
+            className="hero__right"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+          >
+            <Suspense fallback={null}>
+              <IsometricCyberScene />
+            </Suspense>
+          </motion.div>
+        )}
       </section>
 
       {/* ═══════════════ LIVE SCAM RADAR TICKER ═══════════════ */}

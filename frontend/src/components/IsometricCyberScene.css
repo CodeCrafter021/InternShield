@@ -561,11 +561,7 @@
 
 @media (max-width: 768px), (pointer: coarse) {
   .iso-scene-wrap {
-    width: 320px;
-    height: 300px;
-    transform: scale(0.68);
-    margin: 0 auto;
-    contain: layout paint;
+    display: none;
   }
 
   .iso-ambient-glow {
@@ -583,4 +579,3 @@
     display: none !important;
   }
 }
-

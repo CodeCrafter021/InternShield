@@ -735,7 +735,7 @@ img {
 
 /* ══════════════════════════════════════════════════════════════════
    ANDROID & MOBILE ULTRA-SMOOTH GPU PERFORMANCE OPTIMIZATIONS
-   Fixes mobile lag, stops GPU fill-rate throttling & gives 60-120 FPS
+   Reduces expensive visual effects on touch screens
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px), (pointer: coarse) {
   :root {
@@ -855,7 +855,7 @@ img {
   }
 }
 /* ══════════════════════════════════════════════════════
-   MOBILE PHONE 120 FPS & ZERO-OVERFLOW MASTER GUARD
+   MOBILE INPUT & VIEWPORT SAFETY
    ══════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   html, body, #root, .page {
@@ -871,15 +871,13 @@ img {
     box-sizing: border-box;
   }
 
-  /* Disable heavy background 3D cubes to guarantee 120 FPS on mobile */
   .float-cube {
     display: none !important;
   }
 
-  /* Freeze heavy 120px blur animations on mobile GPU */
   .aurora-blob {
     animation: none !important;
-    filter: blur(35px) !important;
+    filter: none !important;
     opacity: 0.1 !important;
     transform: none !important;
   }
@@ -888,18 +886,28 @@ img {
     animation: none !important;
   }
 
-  /* GPU-optimized touch momentum scrolling */
   body, .page, .dashboard-portal-main {
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior-y: contain;
   }
 
-  /* Relieve mobile GPU from heavy blur rasterization */
   .glass,
   .glass-card,
-  .glass-pill {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+  .glass-pill,
+  .dynamic-island,
+  .liquid-auth-card,
+  .liquid-btn,
+  .hero-search-bar,
+  .auth-live-feed,
+  .social-auth-btn {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .page,
+  .auth-page-wrapper {
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 }
 

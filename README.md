@@ -4,7 +4,7 @@ InternShield is a student-first internship safety platform designed to help stud
 
 The platform combines company verification, offer-letter analysis, student reports, and AI-assisted scam detection into one streamlined experience.
 
-Live Demo: [https://intern-shield-blue.vercel.app/](https://intern-shield-alpha.vercel.app/)
+Live Demo: [https://intern-shield-five.vercel.app/](https://intern-shield-five.vercel.app/)
 
 ## Privacy & Data Protection
 
@@ -148,7 +148,7 @@ InternShield/
 
 The project is deployed on Vercel for the frontend:
 
-https://intern-shield-blue.vercel.app/
+https://intern-shield-five.vercel.app/
 
 ## Tech Stack
 

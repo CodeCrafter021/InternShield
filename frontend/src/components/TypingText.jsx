@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useConserveMotion } from "../hooks/useConserveMotion.js";
 
 // Types out a list of phrases one character at a time, pauses, deletes, and
 // moves to the next phrase — used for the animated hero headline instead of
@@ -7,8 +8,11 @@ export default function TypingText({ phrases, typingSpeed = 55, pauseMs = 1600 }
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [text, setText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const conserveMotion = useConserveMotion();
 
   useEffect(() => {
+    if (conserveMotion) return undefined;
+
     const current = phrases[phraseIndex];
     let timeout;
 
@@ -24,12 +28,12 @@ export default function TypingText({ phrases, typingSpeed = 55, pauseMs = 1600 }
     }
 
     return () => clearTimeout(timeout);
-  }, [text, deleting, phraseIndex, phrases, typingSpeed, pauseMs]);
+  }, [text, deleting, phraseIndex, phrases, typingSpeed, pauseMs, conserveMotion]);
 
   return (
     <span className="typing-text">
-      {text}
-      <span className="typing-text__cursor">|</span>
+      {conserveMotion ? phrases[0] : text}
+      {!conserveMotion && <span className="typing-text__cursor">|</span>}
     </span>
   );
 }

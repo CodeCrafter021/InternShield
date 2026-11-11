@@ -103,6 +103,14 @@
   position: relative;
 }
 
+.hero--static {
+  grid-template-columns: 1fr;
+}
+
+.hero--static .hero__left {
+  max-width: 760px;
+}
+
 .hero__left {
   display: flex;
   flex-direction: column;
@@ -1128,7 +1136,7 @@
 
 /* ══════════════════════════════════════════════════════
    MOBILE PHONE OPTIMIZATIONS (320px - 768px)
-   Zero horizontal overflow, 120 FPS silky-smooth touch
+   Small-screen layout and overflow protection
    ══════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
   .container {
@@ -1254,10 +1262,7 @@
   }
 
   .hero__right {
-    min-height: auto;
-    max-height: 240px;
-    width: 100%;
-    overflow: hidden;
+    display: none;
   }
 
   /* ── Live Scam Radar Ticker ── */
@@ -1576,6 +1581,12 @@
 
   .final-cta-buttons .liquid-btn {
     width: 100%;
+  }
+}
+
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .hero__right {
+    display: none;
   }
 }
 

@@ -8,7 +8,7 @@ import "./Navbar.css";
 
 /**
  * Navbar — Floating Modern Glass Header
- * Ultra-smooth 120 FPS scroll tracking with zero listener thrashing
+ * RequestAnimationFrame-throttled scroll tracking
  */
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
