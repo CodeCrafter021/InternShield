@@ -38,14 +38,29 @@ api.interceptors.response.use(
 );
 
 let lastHealthyAt = 0;
+let warmUpPromise = null;
 
-// Fire-and-forget ping so a sleeping backend starts waking while the page loads
+// Start waking a sleeping backend before a user submits credentials or leaves for OAuth.
 export function warmUpBackend() {
-  fetch(`${API_BASE_URL}/health`, { method: "GET", mode: "cors" })
+  if (Date.now() - lastHealthyAt < 5 * 60 * 1000) return Promise.resolve(true);
+  if (warmUpPromise) return warmUpPromise;
+
+  warmUpPromise = fetch(`${API_BASE_URL}/health`, {
+    method: "GET",
+    mode: "cors",
+    cache: "no-store",
+    keepalive: true,
+  })
     .then((res) => {
       if (res.ok) lastHealthyAt = Date.now();
+      return res.ok;
     })
-    .catch(() => {});
+    .catch(() => false)
+    .finally(() => {
+      warmUpPromise = null;
+    });
+
+  return warmUpPromise;
 }
 
 // Render's free server sleeps and needs 1-2 minutes to start. While it starts, its proxy

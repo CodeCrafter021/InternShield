@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mail,
@@ -16,6 +16,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { startOAuth } from "../services/oauth.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { warmUpBackend } from "../services/api.js";
 import LiquidButton from "./LiquidButton.jsx";
 import "./LiquidAuthCard.css";
 
@@ -45,6 +46,10 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
   const [isSuccess, setIsSuccess] = useState(false);
   const [loginChallenge, setLoginChallenge] = useState("");
   const [otpCode, setOtpCode] = useState("");
+
+  useEffect(() => {
+    warmUpBackend();
+  }, []);
 
   // Password strength calculation
   function getPasswordStrength(pwd) {

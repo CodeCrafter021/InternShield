@@ -11,10 +11,17 @@ export default function OAuthCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [slow, setSlow] = useState(false);
+  const [waitSeconds, setWaitSeconds] = useState(0);
   const [challengeToken, setChallengeToken] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const ran = useRef(false); // StrictMode runs effects twice; a code can be used only once
+
+  useEffect(() => {
+    if (!slow) return undefined;
+    const timer = setInterval(() => setWaitSeconds((seconds) => seconds + 1), 1000);
+    return () => clearInterval(timer);
+  }, [slow]);
 
   useEffect(() => {
     if (ran.current) return;
@@ -99,7 +106,9 @@ export default function OAuthCallback() {
           )}
           {slow && !challengeToken && (
             <p style={{ maxWidth: 360, textAlign: "center", fontSize: ".85rem", color: "#8f94a9" }}>
-              The server was asleep and is waking up. This can take 1–2 minutes the first time. Please don&apos;t close this page.
+              {waitSeconds < 90
+                ? `The server is starting after inactivity. Sign-in will continue automatically (${waitSeconds}s).`
+                : `The server is taking longer than usual to start. Sign-in is still retrying (${waitSeconds}s).`}
             </p>
           )}
         </>

@@ -10,10 +10,12 @@ include the exact frontend origin (without a trailing slash), for example:
 CORS_ORIGINS=https://intern-shield-five.vercel.app
 ```
 
-Render's free web services sleep after inactivity. The first API request can
-take a minute or two while the service starts, so sign-up, sign-in, and OAuth
-may appear to wait. For users to sign in immediately at any time, run the API
-on an always-on Render instance or another host that does not sleep when idle.
+Render's free web services sleep after inactivity. The frontend now starts a
+health check as soon as the authentication screen opens and again when OAuth
+starts, overlapping server startup with the user's sign-in steps. If the
+instance has already gone to sleep, the cold start can still take a minute or
+two. To eliminate that wait, run the API on an always-on Render instance or
+another host that does not sleep when idle.
 
 Keep the existing database and OAuth environment variables configured when
 changing the instance type or host; never commit their secret values.

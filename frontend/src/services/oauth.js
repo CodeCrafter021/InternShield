@@ -1,3 +1,5 @@
+import { warmUpBackend } from "./api.js";
+
 // Starts the Google / GitHub sign-in by redirecting to the provider.
 // The code we get back is exchanged on the BACKEND (client secrets never reach the browser).
 
@@ -27,6 +29,7 @@ export function startOAuth(provider) {
   }
   const state = crypto.randomUUID();
   sessionStorage.setItem("oauth_state", state);
+  warmUpBackend();
 
   const params = new URLSearchParams({
     client_id: cfg.clientId,
