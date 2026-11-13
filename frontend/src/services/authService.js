@@ -1,5 +1,5 @@
 import api, { waitForBackend } from "./api";
-import { userKey, purgeUserData } from "./userStorage";
+import { userKey, purgeUserData, cacheUserSettings } from "./userStorage";
 
 const TOKEN_KEY = "internshield_token";
 const SESSION_KEY = "internshield_session";
@@ -16,7 +16,7 @@ function friendlyError(err, fallback) {
 // Extra profile details (college, links, bio...) live under a per-user key, so they
 // survive logout/login and are never mixed up between accounts.
 const PROFILE_KEY = "internshield_profile";
-const LOCKED_FIELDS = ["id", "email", "provider", "role"];
+const LOCKED_FIELDS = ["id", "email", "provider", "role", "sessionId", "twoFactorEnabled"];
 
 function readExtras(email) {
   try {
@@ -44,6 +44,8 @@ function saveSession(data, fallbackEmail = "") {
     avatar: user.avatar || "",
     provider: user.provider || "password",
     role: "STUDENT",
+    sessionId: user.sessionId || "",
+    twoFactorEnabled: !!user.twoFactorEnabled,
   };
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
@@ -91,6 +93,7 @@ export async function login(arg1, arg2, arg3) {
   }
   try {
     const res = await api.post("/auth/login", { email: normalizedEmail, password });
+    if (res.data.twoFactorRequired) return res.data;
     return saveSession(res.data, normalizedEmail);
   } catch (err) {
     throw new Error(friendlyError(err, "Invalid email or password."));
@@ -101,6 +104,7 @@ export async function login(arg1, arg2, arg3) {
 export async function oauthLogin(provider, code, redirectUri) {
   try {
     const res = await api.post(`/auth/oauth/${provider}`, { code, redirectUri });
+    if (res.data.twoFactorRequired) return res.data;
     return saveSession(res.data);
   } catch (err) {
     throw new Error(friendlyError(err, `Could not sign in with ${provider}.`));
@@ -109,8 +113,12 @@ export async function oauthLogin(provider, code, redirectUri) {
 
 // ── Logout ──
 export function logout() {
+  const token = localStorage.getItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(SESSION_KEY);
+  if (!token) return Promise.resolve();
+  return api.delete("/auth/logout", { headers: { Authorization: `Bearer ${token}` } })
+    .then(() => undefined);
 }
 
 export function getSession() {
@@ -152,48 +160,42 @@ export async function updateUserProfile(userId, profileData) {
   return merge(base);
 }
 
-// ── Password Reset (OTP based - local) ──
-const OTP_STORE_BASE = "internshield_otp_store";
-const otpKey = () => userKey(OTP_STORE_BASE);
-
 export async function requestPasswordResetOtp(email) {
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const otpRecord = {
-    email: email.trim().toLowerCase(),
-    otp: code,
-    expiresAt: Date.now() + 10 * 60 * 1000,
-  };
-  localStorage.setItem(otpKey(), JSON.stringify(otpRecord));
-  return { success: true, otp: code, email: email.trim() };
+  try {
+    const response = await api.post("/auth/password-reset/request", { email: email.trim().toLowerCase() });
+    return response.data;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not send the verification email."));
+  }
 }
 
 export async function verifyPasswordResetOtp(email, otp) {
-  const raw = localStorage.getItem(otpKey());
-  if (!raw) throw new Error("No active OTP request found.");
-
-  const record = JSON.parse(raw);
-  if (record.email !== email.trim().toLowerCase())
-    throw new Error("OTP does not match this email.");
-  if (Date.now() > record.expiresAt)
-    throw new Error("OTP expired. Please request a new one.");
-  if (record.otp !== otp.trim())
-    throw new Error("Invalid OTP code.");
-
-  return { verified: true };
+  try {
+    const response = await api.post("/auth/password-reset/verify", {
+      email: email.trim().toLowerCase(),
+      code: otp.trim(),
+    });
+    return response.data;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Invalid or expired verification code."));
+  }
 }
 
 export async function resetPasswordWithOtp(email, otp, newPassword) {
-  await verifyPasswordResetOtp(email, otp);
-  if (!newPassword || newPassword.length < 6)
-    throw new Error("Password must be at least 6 characters.");
-  localStorage.removeItem(otpKey());
-  return { success: true };
+  try {
+    const response = await api.post("/auth/password-reset/complete", {
+      email: email.trim().toLowerCase(),
+      code: otp.trim(),
+      newPassword,
+    });
+    return response.data;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not reset the password."));
+  }
 }
 
 // ── Settings ──
-const SETTINGS_BASE = "internshield_settings";
-const settingsKey = () => userKey(SETTINGS_BASE);
-const DEFAULT_SETTINGS = {
+export const DEFAULT_USER_SETTINGS = {
   twoFactorEnabled: false,
   incognitoVerification: false,
   telemetrySharing: true,
@@ -204,22 +206,86 @@ const DEFAULT_SETTINGS = {
   apiKey: "",
 };
 
-export function getUserSettings() {
-  const raw = localStorage.getItem(settingsKey());
-  if (!raw) {
-    localStorage.setItem(settingsKey(), JSON.stringify(DEFAULT_SETTINGS));
-    return DEFAULT_SETTINGS;
-  }
+export async function getUserSettings() {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_SETTINGS;
+    const response = await api.get("/account/settings");
+    const settings = { ...DEFAULT_USER_SETTINGS, ...response.data };
+    cacheUserSettings(settings);
+    return settings;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not load account settings."));
   }
 }
 
-export function updateUserSettings(newSettings) {
-  const current = getUserSettings();
-  const updated = { ...current, ...newSettings };
-  localStorage.setItem(settingsKey(), JSON.stringify(updated));
-  return updated;
+export async function updateUserSettings(newSettings) {
+  try {
+    const response = await api.put("/account/settings", newSettings);
+    const settings = { ...DEFAULT_USER_SETTINGS, ...response.data };
+    cacheUserSettings(settings);
+    return settings;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not save account settings."));
+  }
+}
+
+export async function getActiveSessions() {
+  try {
+    const response = await api.get("/account/sessions");
+    return response.data;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not load active sessions."));
+  }
+}
+
+export async function revokeSession(id) {
+  try {
+    await api.delete(`/account/sessions/${encodeURIComponent(id)}`);
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not revoke this session."));
+  }
+}
+
+export async function revokeOtherSessions() {
+  try {
+    const response = await api.post("/account/sessions/revoke-others");
+    return response.data.revoked;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not sign out other devices."));
+  }
+}
+
+export async function setupTwoFactor() {
+  try {
+    const response = await api.post("/account/2fa/setup");
+    return response.data;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not start authenticator setup."));
+  }
+}
+
+export async function enableTwoFactor(code) {
+  try {
+    const response = await api.post("/account/2fa/enable", { code });
+    return response.data;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not enable two-factor authentication."));
+  }
+}
+
+export async function disableTwoFactor(code) {
+  try {
+    const response = await api.post("/account/2fa/disable", { code });
+    return response.data;
+  } catch (err) {
+    throw new Error(friendlyError(err, "Could not disable two-factor authentication."));
+  }
+}
+
+export async function verifyLoginOtp(challengeToken, code) {
+  try {
+    const response = await api.post("/auth/2fa/verify", { challengeToken, code });
+    return saveSession(response.data);
+  } catch (err) {
+    throw new Error(friendlyError(err, "Invalid or expired authenticator code."));
+  }
 }

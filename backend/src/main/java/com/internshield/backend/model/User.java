@@ -3,9 +3,8 @@ package com.internshield.backend.model;
 import jakarta.persistence.*;
 
 /**
- * Minimal account record. This is ALL we store about a person:
- * email, display name, (bcrypt hash OR social provider id) and avatar URL.
- * No offer letters, no scan history, no IP addresses.
+ * Account identity, credential, authenticator enrollment, and account preferences.
+ * Activity and scan history are stored separately and do not include an IP address.
  */
 @Entity
 @Table(name = "users")
@@ -35,6 +34,18 @@ public class User {
     @Column(length = 500)
     private String avatarUrl;
 
+    @Column(length = 64)
+    private String totpSecret;
+
+    @Column(length = 64)
+    private String pendingTotpSecret;
+
+    @Column(nullable = false)
+    private boolean twoFactorEnabled;
+
+    @Column(length = 4000)
+    private String settingsJson = "{}";
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getEmail() { return email; }
@@ -49,4 +60,12 @@ public class User {
     public void setProviderId(String providerId) { this.providerId = providerId; }
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+    public String getTotpSecret() { return totpSecret; }
+    public void setTotpSecret(String totpSecret) { this.totpSecret = totpSecret; }
+    public String getPendingTotpSecret() { return pendingTotpSecret; }
+    public void setPendingTotpSecret(String pendingTotpSecret) { this.pendingTotpSecret = pendingTotpSecret; }
+    public boolean isTwoFactorEnabled() { return twoFactorEnabled; }
+    public void setTwoFactorEnabled(boolean twoFactorEnabled) { this.twoFactorEnabled = twoFactorEnabled; }
+    public String getSettingsJson() { return settingsJson; }
+    public void setSettingsJson(String settingsJson) { this.settingsJson = settingsJson; }
 }

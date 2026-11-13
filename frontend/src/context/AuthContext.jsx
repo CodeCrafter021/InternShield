@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
 
   async function login(arg1, arg2, options) {
     const session = await authService.login(arg1, arg2, options);
-    setUser(session);
+    if (!session?.twoFactorRequired) setUser(authService.getSession());
     return session;
   }
 
@@ -27,6 +27,12 @@ export function AuthProvider({ children }) {
 
   async function oauthLogin(provider, code, redirectUri) {
     const session = await authService.oauthLogin(provider, code, redirectUri);
+    if (!session?.twoFactorRequired) setUser(authService.getSession());
+    return session;
+  }
+
+  async function verifyLoginOtp(challengeToken, code) {
+    const session = await authService.verifyLoginOtp(challengeToken, code);
     setUser(session);
     return session;
   }
@@ -47,8 +53,8 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    authService.logout();
     setUser(null);
+    return authService.logout();
   }
 
   const value = {
@@ -57,6 +63,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     oauthLogin,
+    verifyLoginOtp,
     logout,
     updateProfile,
     requestOtp,

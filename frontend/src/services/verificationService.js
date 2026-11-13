@@ -1,5 +1,5 @@
 import api from "./api";
-import { userKey } from "./userStorage";
+import { userKey, getCachedUserSettings } from "./userStorage";
 
 const CHECKS_KEY = "internshield_checks_history";
 const ALERTS_KEY = "internshield_community_alerts";
@@ -218,6 +218,7 @@ export function getSearchLog() {
 }
 
 export function recordSearch(term, resultCount) {
+  if (getCachedUserSettings().incognitoVerification) return;
   const t = (term || "").trim();
   if (!t) return;
   const log = getSearchLog();
@@ -252,7 +253,9 @@ export async function searchCompanies(query) {
   const q = query.trim();
 
   try {
-    const res = await api.get(`/companies/search?query=${encodeURIComponent(q)}`);
+    const res = await api.get(`/companies/search?query=${encodeURIComponent(q)}`, {
+      _skipAuth: getCachedUserSettings().incognitoVerification,
+    });
     return Array.isArray(res.data) ? res.data.map(fromApi) : [];
   } catch (err) {
     throw new Error(
@@ -266,7 +269,9 @@ export async function searchCompanies(query) {
 // ── Get Company by ID ──
 export async function getCompanyById(id) {
   try {
-    const res = await api.get(`/companies/${id}`);
+    const res = await api.get(`/companies/${id}`, {
+      _skipAuth: getCachedUserSettings().incognitoVerification,
+    });
     return res.data ? fromApi(res.data) : null;
   } catch (err) {
     return null;
@@ -336,6 +341,8 @@ export async function runCheck(companyOrId) {
     checks,
     checkedAt: new Date().toISOString(),
   };
+
+  if (getCachedUserSettings().incognitoVerification) return result;
 
   // Record into real history database
   const history = getChecksHistoryDB();

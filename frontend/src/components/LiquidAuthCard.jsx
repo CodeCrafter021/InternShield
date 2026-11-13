@@ -30,7 +30,7 @@ import "./LiquidAuthCard.css";
  */
 export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
   const [activeTab, setActiveTab] = useState(defaultTab); // "signin" | "signup"
-  const { login, register } = useAuth();
+  const { login, register, verifyLoginOtp } = useAuth();
   const navigate = useNavigate();
 
   // Form states
@@ -43,6 +43,8 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isWaitingForServer, setIsWaitingForServer] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [loginChallenge, setLoginChallenge] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   // Password strength calculation
   function getPasswordStrength(pwd) {
@@ -73,33 +75,47 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
     e.preventDefault();
     setError("");
 
-    if (!email.trim() || !password) {
-      setError("Please fill in all required fields.");
-      return;
-    }
+    if (loginChallenge) {
+      if (!/^\d{6}$/.test(otpCode)) {
+        setError("Enter the 6-digit code from your authenticator app.");
+        return;
+      }
+    } else {
+      if (!email.trim() || !password) {
+        setError("Please fill in all required fields.");
+        return;
+      }
 
-    if (activeTab === "signup") {
-      if (!name.trim()) {
-        setError("Please enter your full name.");
-        return;
-      }
-      if (password !== confirmPassword) {
-        setError("Passwords do not match.");
-        return;
-      }
-      if (password.length < 8) {
-        setError("Password must be at least 8 characters.");
-        return;
+      if (activeTab === "signup") {
+        if (!name.trim()) {
+          setError("Please enter your full name.");
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError("Passwords do not match.");
+          return;
+        }
+        if (password.length < 8) {
+          setError("Password must be at least 8 characters.");
+          return;
+        }
       }
     }
 
     setIsLoading(true);
     setIsWaitingForServer(false);
     try {
-      if (activeTab === "signin") {
-        await login({ email: email.trim(), password }, {
+      if (loginChallenge) {
+        await verifyLoginOtp(loginChallenge, otpCode);
+      } else if (activeTab === "signin") {
+        const result = await login({ email: email.trim(), password }, {
           onWaiting: () => setIsWaitingForServer(true),
         });
+        if (result?.twoFactorRequired) {
+          setLoginChallenge(result.challengeToken);
+          setOtpCode("");
+          return;
+        }
       } else {
         await register({ name: name.trim(), email: email.trim(), password }, {
           onWaiting: () => setIsWaitingForServer(true),
@@ -130,6 +146,8 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
   function handleTabChange(tab) {
     setActiveTab(tab);
     setError("");
+    setLoginChallenge("");
+    setOtpCode("");
   }
 
   return (
@@ -261,6 +279,33 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
 
       {/* Form Fields */}
       <form onSubmit={handleSubmit} className="liquid-auth-form">
+        {loginChallenge ? (
+          <div className="liquid-input-group">
+            <p className="liquid-auth-2fa-copy">
+              Enter the current 6-digit code from your authenticator app to finish signing in.
+            </p>
+            <div className="liquid-input-wrap">
+              <ShieldCheck size={18} className="liquid-input-icon" />
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                placeholder="123456"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="liquid-input"
+                aria-label="Authenticator code"
+                required
+              />
+            </div>
+            <button type="button" className="liquid-auth-link" onClick={() => setLoginChallenge("")}>
+              Back to password
+            </button>
+          </div>
+        ) : (
+          <>
         {/* Name Field (Sign Up Only) */}
         <AnimatePresence>
           {activeTab === "signup" && (
@@ -388,7 +433,8 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
           )}
         </AnimatePresence>
 
-        {/* Submit Button */}
+          </>
+        )}
         <LiquidButton
           type="submit"
           variant="solid"
@@ -403,6 +449,8 @@ export default function LiquidAuthCard({ defaultTab = "signin", onSuccess }) {
             </span>
           ) : isLoading ? (
             isWaitingForServer ? "Waking secure server..." : "Authenticating..."
+          ) : loginChallenge ? (
+            "Verify & Sign In"
           ) : activeTab === "signin" ? (
             "Sign In to Dashboard"
           ) : (

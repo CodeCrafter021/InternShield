@@ -15,11 +15,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.servlet.http.HttpServletRequest;
 
 import com.internshield.backend.model.User;
+import com.internshield.backend.repository.PasswordResetOtpRepository;
 import com.internshield.backend.repository.UserRepository;
 import com.internshield.backend.security.JwtUtil;
 import com.internshield.backend.security.OAuthService;
+import com.internshield.backend.security.TwoFactorService;
+import com.internshield.backend.security.UserSessionService;
 import com.internshield.backend.security.OAuthService.OAuthProfile;
 
 @RestController
@@ -33,18 +37,26 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final OAuthService oAuthService;
+    private final TwoFactorService twoFactorService;
+    private final UserSessionService userSessionService;
+    private final PasswordResetOtpRepository passwordResetOtps;
 
     public AuthController(UserRepository userRepository, JwtUtil jwtUtil,
-                          PasswordEncoder passwordEncoder, OAuthService oAuthService) {
+                          PasswordEncoder passwordEncoder, OAuthService oAuthService,
+                          TwoFactorService twoFactorService, UserSessionService userSessionService,
+                          PasswordResetOtpRepository passwordResetOtps) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.oAuthService = oAuthService;
+        this.twoFactorService = twoFactorService;
+        this.userSessionService = userSessionService;
+        this.passwordResetOtps = passwordResetOtps;
     }
 
     // ── Register ──
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> register(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String email = clean(body.get("email")).toLowerCase();
         String password = body.get("password") == null ? "" : body.get("password");
         String name = clean(body.get("name"));
@@ -60,12 +72,12 @@ public class AuthController {
         user.setProvider("password");
         userRepository.save(user);
 
-        return ResponseEntity.ok(session(user));
+        return ResponseEntity.ok(userSessionService.create(user, request));
     }
 
     // ── Login ──
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String email = clean(body.get("email")).toLowerCase();
         String password = body.get("password") == null ? "" : body.get("password");
 
@@ -78,12 +90,34 @@ public class AuthController {
             }
             return error("Invalid email or password");
         }
-        return ResponseEntity.ok(session(user));
+        if (user.isTwoFactorEnabled()) {
+            return ResponseEntity.ok(Map.of(
+                    "twoFactorRequired", true,
+                    "challengeToken", jwtUtil.generateLoginChallenge(user.getEmail())));
+        }
+        return ResponseEntity.ok(userSessionService.create(user, request));
+    }
+
+    @PostMapping("/2fa/verify")
+    public ResponseEntity<?> verifyLoginTwoFactor(@RequestBody Map<String, String> body,
+                                                   HttpServletRequest request) {
+        String challenge = clean(body.get("challengeToken"));
+        if (!jwtUtil.validateToken(challenge) || !"2fa".equals(jwtUtil.extractPurpose(challenge))) {
+            return error("Sign-in challenge expired. Please sign in again.");
+        }
+        String email = jwtUtil.extractEmail(challenge);
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null || !user.isTwoFactorEnabled()
+                || !twoFactorService.verify(user.getTotpSecret(), body.get("code"))) {
+            return error("Invalid authenticator code.");
+        }
+        return ResponseEntity.ok(userSessionService.create(user, request));
     }
 
     // ── Google / GitHub ──
     @PostMapping("/oauth/{provider}")
-    public ResponseEntity<?> oauth(@PathVariable String provider, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> oauth(@PathVariable String provider, @RequestBody Map<String, String> body,
+                                   HttpServletRequest request) {
         if (!PROVIDERS.contains(provider)) return error("Unsupported provider");
         String code = clean(body.get("code"));
         String redirectUri = clean(body.get("redirectUri"));
@@ -110,7 +144,12 @@ public class AuthController {
         user.setAvatarUrl(p.avatar());
         userRepository.save(user);
 
-        return ResponseEntity.ok(session(user));
+        if (user.isTwoFactorEnabled()) {
+            return ResponseEntity.ok(Map.of(
+                    "twoFactorRequired", true,
+                    "challengeToken", jwtUtil.generateLoginChallenge(user.getEmail())));
+        }
+        return ResponseEntity.ok(userSessionService.create(user, request));
     }
 
     // ── Profile ──
@@ -124,24 +163,34 @@ public class AuthController {
     // ── Delete account (removes everything we hold about the user) ──
     @DeleteMapping("/delete")
     public ResponseEntity<?> delete(Authentication auth) {
-        userRepository.findByEmail(auth.getName()).ifPresent(userRepository::delete);
+        String email = auth.getName();
+        userSessionService.revokeAll(email);
+        passwordResetOtps.deleteByEmail(email);
+        userRepository.findByEmail(email).ifPresent(userRepository::delete);
         return ResponseEntity.ok(Map.of("message", "Account deleted"));
     }
 
-    // ── helpers ──
-    private Map<String, Object> session(User u) {
-        Map<String, Object> m = profileMap(u);
-        m.put("token", jwtUtil.generateToken(u.getEmail()));
-        return m;
+    @DeleteMapping("/logout")
+    public ResponseEntity<?> logout(Authentication auth, HttpServletRequest request) {
+        String token = bearerToken(request);
+        userSessionService.revokeCurrent(auth.getName(), jwtUtil.extractSessionId(token));
+        return ResponseEntity.ok(Map.of("message", "Signed out"));
     }
 
+    // ── helpers ──
     private Map<String, Object> profileMap(User u) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("email", u.getEmail());
         m.put("name", u.getName() == null ? "" : u.getName());
         m.put("avatar", u.getAvatarUrl() == null ? "" : u.getAvatarUrl());
         m.put("provider", u.getProvider() == null ? "password" : u.getProvider());
+        m.put("twoFactorEnabled", u.isTwoFactorEnabled());
         return m;
+    }
+
+    private static String bearerToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        return header == null || !header.startsWith("Bearer ") ? "" : header.substring(7);
     }
 
     private static ResponseEntity<?> error(String msg) {

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
@@ -25,11 +26,24 @@ public class JwtUtil {
         this.expiryMillis = expiryHours * 3600_000L;
     }
 
-    public String generateToken(String email) {
+    public String generateToken(String email, String sessionId) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim("purpose", "access")
+                .claim("sid", sessionId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiryMillis))
+                .signWith(key)
+                .compact();
+    }
+
+    public String generateLoginChallenge(String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("purpose", "2fa")
+                .setId(UUID.randomUUID().toString())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 5 * 60_000L))
                 .signWith(key)
                 .compact();
     }
@@ -46,5 +60,15 @@ public class JwtUtil {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public String extractPurpose(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(token).getBody().get("purpose", String.class);
+    }
+
+    public String extractSessionId(String token) {
+        return Jwts.parserBuilder().setSigningKey(key).build()
+                .parseClaimsJws(token).getBody().get("sid", String.class);
     }
 }

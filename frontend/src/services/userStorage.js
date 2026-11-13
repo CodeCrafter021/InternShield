@@ -13,6 +13,20 @@ export function userKey(base, email = currentEmail()) {
   return `${base}:${email || "anon"}`;
 }
 
+const SETTINGS_CACHE = "internshield_settings_cache";
+
+export function cacheUserSettings(settings) {
+  localStorage.setItem(userKey(SETTINGS_CACHE), JSON.stringify(settings));
+}
+
+export function getCachedUserSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(userKey(SETTINGS_CACHE)) || "{}");
+  } catch {
+    return {};
+  }
+}
+
 // Old versions stored this data in shared (global) keys. Remove those once so no
 // new account can inherit someone else's (or the developer's test) data.
 const LEGACY_KEYS = [

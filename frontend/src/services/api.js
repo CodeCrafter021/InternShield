@@ -17,7 +17,9 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("internshield_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const skipAuth = config._skipAuth;
+  delete config._skipAuth;
+  if (token && !skipAuth) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 

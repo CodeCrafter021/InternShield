@@ -38,7 +38,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
-                .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/oauth/**").permitAll()
+                .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/oauth/**",
+                        "/api/auth/2fa/verify", "/api/auth/password-reset/**").permitAll()
                 // anyone can READ company safety info and community reports
                 .requestMatchers(HttpMethod.GET, "/api/companies/**", "/api/reports/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/companies/*/verify").permitAll()

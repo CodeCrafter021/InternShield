@@ -7,10 +7,13 @@ import { waitForBackend } from "../services/api.js";
 export default function OAuthCallback() {
   const { provider } = useParams();
   const [params] = useSearchParams();
-  const { oauthLogin } = useAuth();
+  const { oauthLogin, verifyLoginOtp } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [slow, setSlow] = useState(false);
+  const [challengeToken, setChallengeToken] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const ran = useRef(false); // StrictMode runs effects twice; a code can be used only once
 
   useEffect(() => {
@@ -34,7 +37,11 @@ export default function OAuthCallback() {
       }
       // 2) only now send the one-time login code
       try {
-        await oauthLogin(provider, code, redirectUriFor(provider));
+        const result = await oauthLogin(provider, code, redirectUriFor(provider));
+        if (result?.twoFactorRequired) {
+          setChallengeToken(result.challengeToken);
+          return;
+        }
         navigate("/dashboard", { replace: true });
       } catch (e) {
         setError(e.message);
@@ -44,7 +51,7 @@ export default function OAuthCallback() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, color: "#cbd5e1" }}>
-      {error ? (
+      {error && !challengeToken ? (
         <>
           <p style={{ maxWidth: 420, textAlign: "center" }}>{error}</p>
           <button onClick={() => navigate("/login", { replace: true })} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer" }}>
@@ -53,8 +60,44 @@ export default function OAuthCallback() {
         </>
       ) : (
         <>
-          <p>Signing you in…</p>
-          {slow && (
+          {challengeToken ? (
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setError("");
+                setVerifying(true);
+                try {
+                  await verifyLoginOtp(challengeToken, otpCode);
+                  navigate("/dashboard", { replace: true });
+                } catch (e) {
+                  setError(e.message);
+                } finally {
+                  setVerifying(false);
+                }
+              }}
+              style={{ display: "flex", flexDirection: "column", gap: 12, width: "min(360px, 90vw)" }}
+            >
+              <p>Enter the 6-digit code from your authenticator app.</p>
+              {error && <p role="alert">{error}</p>}
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otpCode}
+                onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                aria-label="Authenticator code"
+                required
+                style={{ padding: 12, borderRadius: 8 }}
+              />
+              <button type="submit" disabled={verifying || otpCode.length !== 6} style={{ padding: 10, borderRadius: 10 }}>
+                {verifying ? "Verifying…" : "Verify & sign in"}
+              </button>
+            </form>
+          ) : (
+            <p>Signing you in…</p>
+          )}
+          {slow && !challengeToken && (
             <p style={{ maxWidth: 360, textAlign: "center", fontSize: ".85rem", color: "#8f94a9" }}>
               The server was asleep and is waking up. This can take 1–2 minutes the first time. Please don&apos;t close this page.
             </p>

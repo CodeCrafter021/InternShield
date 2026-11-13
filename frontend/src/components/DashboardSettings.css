@@ -11,7 +11,8 @@
 /* ── Toast Alert Banner ── */
 .settings-toast {
   position: fixed;
-  top: 96px;
+  top: auto;
+  bottom: 28px;
   right: 28px;
   z-index: 9999;
   display: flex;
@@ -403,7 +404,7 @@
   background: rgba(56, 189, 248, 0.08);
 }
 
-.otp-demo-helper {
+.otp-delivery-info {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -411,17 +412,6 @@
   font-size: 0.8rem;
   color: #38bdf8;
   border-color: rgba(56, 189, 248, 0.3);
-}
-
-.otp-autofill-link {
-  background: none;
-  border: none;
-  color: #ffffff;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0;
-  font-size: inherit;
 }
 
 .otp-timer-meta {
@@ -735,45 +725,12 @@ input:checked + .slider:before {
   color: var(--text-secondary);
 }
 
-.mock-qr-wrap {
+.authenticator-setup {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   margin: 12px 0;
-}
-
-.mock-qr-code {
-  position: relative;
-  width: 160px;
-  height: 160px;
-  background: #ffffff;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 24px rgba(56, 189, 248, 0.4);
-}
-
-.qr-corner {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  border: 4px solid #0f172a;
-}
-
-.qr-top-left { top: 12px; left: 12px; }
-.qr-top-right { top: 12px; right: 12px; }
-.qr-bottom-left { bottom: 12px; left: 12px; }
-
-.qr-center-shield {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #0f172a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .secret-key-text {
@@ -784,6 +741,29 @@ input:checked + .slider:before {
   padding: 4px 12px;
   border-radius: var(--radius-full);
   border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.authenticator-qr {
+  width: 240px;
+  height: 240px;
+  max-width: 100%;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+}
+
+.sessions-empty {
+  color: var(--text-secondary);
+  padding: 18px 0;
+}
+
+@media (max-width: 600px) {
+  .settings-toast {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    justify-content: center;
+  }
 }
 
 .modal-actions {

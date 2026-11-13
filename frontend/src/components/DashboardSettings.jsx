@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User,
   Shield,
   Lock,
   Smartphone,
   Bell,
   Code2,
   CheckCircle2,
+  Check,
   AlertTriangle,
   Sparkles,
   KeyRound,
   Eye,
   EyeOff,
-  Globe,
   Laptop,
   Radio,
   ShieldCheck,
@@ -23,6 +22,14 @@ import { useAuth } from "../context/AuthContext.jsx";
 import {
   getUserSettings,
   updateUserSettings,
+  DEFAULT_USER_SETTINGS,
+  verifyPasswordResetOtp,
+  getActiveSessions,
+  revokeSession,
+  revokeOtherSessions,
+  setupTwoFactor,
+  enableTwoFactor,
+  disableTwoFactor,
 } from "../services/authService.js";
 import LiquidButton from "./LiquidButton.jsx";
 import "./DashboardSettings.css";
@@ -38,22 +45,46 @@ const AVATAR_PRESETS = [
 
 export default function DashboardSettings({ defaultTab = "security", onClose }) {
   const { user, requestOtp, resetPassword } = useAuth();
+  const toastTimeoutRef = useRef(null);
   const [activeTab, setActiveTab] = useState(
     defaultTab === "profile" || defaultTab === "developer" ? "security" : defaultTab
   );
-  const [settings, setSettings] = useState(getUserSettings());
+  const [settings, setSettings] = useState(DEFAULT_USER_SETTINGS);
   const [toastMessage, setToastMessage] = useState(null);
+
+  useEffect(() => () => clearTimeout(toastTimeoutRef.current), []);
+
+  useEffect(() => {
+    let active = true;
+    getUserSettings()
+      .then((saved) => {
+        if (active) setSettings(saved);
+      })
+      .catch((err) => {
+        if (active) showToast(err.message, "error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.email]);
 
   // Helper toast notification
   function showToast(msg, type = "success") {
+    clearTimeout(toastTimeoutRef.current);
     setToastMessage({ text: msg, type });
-    setTimeout(() => setToastMessage(null), 3500);
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3500);
   }
 
-  function handleSaveSettings(newVals) {
-    const updated = updateUserSettings(newVals);
-    setSettings(updated);
-    showToast("Settings updated successfully!");
+  async function handleSaveSettings(newVals) {
+    try {
+      const updated = await updateUserSettings(newVals);
+      setSettings(updated);
+      showToast("Settings updated successfully!");
+      return updated;
+    } catch (err) {
+      showToast(err.message, "error");
+      throw err;
+    }
   }
 
   return (
@@ -63,9 +94,9 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
         {toastMessage && (
           <motion.div
             className={`settings-toast settings-toast--${toastMessage.type}`}
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
           >
             {toastMessage.type === "success" ? (
@@ -87,7 +118,7 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
           </div>
           <h2 className="settings-suite__title">System Settings</h2>
           <p className="settings-suite__sub">
-            Configure authentication credentials with OTP, 2FA encryption, active device sessions, and alert filters.
+            Manage emailed password recovery, authenticator-based sign-in, active sessions, and saved alert preferences.
           </p>
         </div>
       </div>
@@ -101,7 +132,7 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
             onClick={() => setActiveTab("security")}
           >
             <Lock size={18} />
-            <span>Password & OTP Reset</span>
+            <span>Password & Security</span>
           </button>
 
           <button
@@ -146,12 +177,14 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
                 key="privacy"
                 settings={settings}
                 onSave={handleSaveSettings}
+                onTwoFactorChange={(enabled) => setSettings((current) => ({ ...current, twoFactorEnabled: enabled }))}
                 showToast={showToast}
               />
             )}
             {activeTab === "sessions" && (
               <SessionsTab
                 key="sessions"
+                user={user}
                 showToast={showToast}
               />
             )}
@@ -160,7 +193,6 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
                 key="notifications"
                 settings={settings}
                 onSave={handleSaveSettings}
-                showToast={showToast}
               />
             )}
           </AnimatePresence>
@@ -176,7 +208,6 @@ export default function DashboardSettings({ defaultTab = "security", onClose }) 
 function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
   const [step, setStep] = useState("request");
   const [email, setEmail] = useState(user?.email || "");
-  const [generatedOtp, setGeneratedOtp] = useState("");
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -200,11 +231,11 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
     setErrorMsg("");
     setLoading(true);
     try {
-      const res = await requestOtp(email);
-      setGeneratedOtp(res.otp);
+      await requestOtp(email);
+      setOtpDigits(["", "", "", "", "", ""]);
       setTimerSeconds(60);
       setStep("verify_otp");
-      showToast(`Verification code sent to ${email}`);
+      showToast(`If an account exists for ${email}, a reset code has been emailed.`);
     } catch (err) {
       setErrorMsg(err.message || "Failed to generate OTP code.");
     } finally {
@@ -242,28 +273,31 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
     }
   }
 
-  function handleConfirmOtp() {
+  async function handleConfirmOtp() {
     const fullOtp = otpDigits.join("");
     if (fullOtp.length < 6) {
       setErrorMsg("Please enter the complete 6-digit OTP code.");
       return;
     }
 
-    if (fullOtp !== generatedOtp) {
-      setErrorMsg("Invalid OTP code. Please check the code and try again.");
-      return;
+    setLoading(true);
+    try {
+      await verifyPasswordResetOtp(email, fullOtp);
+      setErrorMsg("");
+      setStep("new_password");
+    } catch (err) {
+      setErrorMsg(err.message || "Invalid or expired email code.");
+    } finally {
+      setLoading(false);
     }
-
-    setErrorMsg("");
-    setStep("new_password");
   }
 
   async function handleUpdatePassword(e) {
     e.preventDefault();
     setErrorMsg("");
 
-    if (newPassword.length < 6) {
-      setErrorMsg("Password must be at least 6 characters.");
+    if (newPassword.length < 8) {
+      setErrorMsg("Password must be at least 8 characters.");
       return;
     }
 
@@ -317,7 +351,7 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
       <div className="tab-panel__header">
         <div>
           <h3>Password & Security Credentials</h3>
-          <p>Reset your account master password securely via One-Time Passcode (OTP) verification.</p>
+          <p>Reset your password with a one-time code sent to your account email.</p>
         </div>
       </div>
 
@@ -336,7 +370,7 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
           </div>
           <h4>Request Security Reset Code</h4>
           <p>
-            We will generate a secure cryptographic 6-digit OTP and transmit it to your verified email address:{" "}
+            If this account supports password sign-in, a secure 6-digit code will be sent to its email address:{" "}
             <strong>{email}</strong>.
           </p>
 
@@ -345,11 +379,14 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
               variant="cyan"
               size="md"
               onClick={handleSendOtp}
-              disabled={loading}
+              disabled={loading || (user?.provider && user.provider !== "password")}
             >
-              {loading ? "Generating OTP..." : "Send Verification OTP"}
+              {loading ? "Sending email..." : "Send Verification OTP"}
             </LiquidButton>
           </div>
+          {user?.provider && user.provider !== "password" && (
+            <p>This account uses {user.provider} sign-in. Manage its password with that provider.</p>
+          )}
         </div>
       )}
 
@@ -364,20 +401,10 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
             Check your inbox for the code sent to <strong>{email}</strong>.
           </p>
 
-          {/* Interactive Demo Assist Bubble */}
-          <div className="otp-demo-helper glass-pill">
+          {/* One-time code is delivered only to the account email. */}
+          <div className="otp-delivery-info glass-pill">
             <Sparkles size={14} color="#38bdf8" />
-            <span>Demo Helper: Your simulated OTP is <strong>{generatedOtp}</strong></span>
-            <button
-              type="button"
-              className="otp-autofill-link"
-              onClick={() => {
-                const arr = generatedOtp.split("");
-                setOtpDigits(arr);
-              }}
-            >
-              (1-Click Autofill)
-            </button>
+            <span>Check your inbox and enter the code sent to your email.</span>
           </div>
 
           {/* Split 6-Box OTP Inputs */}
@@ -388,7 +415,9 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
                 ref={(el) => (inputRefs.current[i] = el)}
                 type="text"
                 inputMode="numeric"
+                autoComplete={i === 0 ? "one-time-code" : "off"}
                 maxLength={1}
+                aria-label={`Verification code digit ${i + 1}`}
                 className={`otp-digit-box ${digit ? "otp-digit-box--filled" : ""}`}
                 value={digit}
                 onChange={(e) => handleDigitChange(i, e.target.value)}
@@ -400,7 +429,7 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
 
           <div className="otp-timer-meta">
             {timerSeconds > 0 ? (
-              <span>Code expires in <strong>{timerSeconds}s</strong></span>
+              <span>Request a new code in <strong>{timerSeconds}s</strong></span>
             ) : (
               <button
                 type="button"
@@ -417,8 +446,9 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
               variant="cyan"
               size="md"
               onClick={handleConfirmOtp}
+              disabled={loading}
             >
-              Verify & Set New Password
+              {loading ? "Verifying..." : "Verify & Set New Password"}
             </LiquidButton>
           </div>
         </div>
@@ -521,7 +551,7 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
           </div>
           <h4>Password Successfully Updated!</h4>
           <p>
-            Your account security credentials have been updated in your local vault. You can now use your new password on all future logins.
+            Your password has been updated and all active sessions were signed out. Use your new password the next time you sign in.
           </p>
 
           <div className="security-step-card__action">
@@ -548,27 +578,78 @@ function SecurityTab({ user, requestOtp, resetPassword, showToast }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // 3. PRIVACY & 2FA TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function PrivacyTab({ settings, onSave, showToast }) {
+function PrivacyTab({ settings, onSave, onTwoFactorChange, showToast }) {
   const [twoFactor, setTwoFactor] = useState(settings.twoFactorEnabled);
   const [incognito, setIncognito] = useState(settings.incognitoVerification);
   const [telemetry, setTelemetry] = useState(settings.telemetrySharing);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showDisableModal, setShowDisableModal] = useState(false);
+  const [setupInfo, setSetupInfo] = useState(null);
+  const [authCode, setAuthCode] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function handleToggle2Fa() {
+  useEffect(() => {
+    setTwoFactor(settings.twoFactorEnabled);
+    setIncognito(settings.incognitoVerification);
+    setTelemetry(settings.telemetrySharing);
+  }, [settings]);
+
+  async function handleToggle2Fa() {
     if (!twoFactor) {
-      setShowQrModal(true);
+      setSaving(true);
+      try {
+        const info = await setupTwoFactor();
+        setSetupInfo(info);
+        setAuthCode("");
+        setShowQrModal(true);
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        setSaving(false);
+      }
     } else {
-      setTwoFactor(false);
-      onSave({ twoFactorEnabled: false });
-      showToast("Two-Factor Authentication disabled.");
+      setAuthCode("");
+      setShowDisableModal(true);
     }
   }
 
-  function handleConfirm2Fa() {
-    setTwoFactor(true);
-    setShowQrModal(false);
-    onSave({ twoFactorEnabled: true });
-    showToast("Two-Factor Authentication is now active! 🛡️");
+  async function handleConfirm2Fa() {
+    setSaving(true);
+    try {
+      await enableTwoFactor(authCode);
+      setTwoFactor(true);
+      setShowQrModal(false);
+      onTwoFactorChange(true);
+      showToast("Two-factor authentication is enabled.");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDisable2Fa() {
+    setSaving(true);
+    try {
+      await disableTwoFactor(authCode);
+      setTwoFactor(false);
+      setShowDisableModal(false);
+      onTwoFactorChange(false);
+      showToast("Two-factor authentication is disabled.");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function savePreference(key, value, setter) {
+    try {
+      await onSave({ [key]: value });
+      setter(value);
+    } catch {
+      // The parent displays the save error and the prior value remains selected.
+    }
   }
 
   return (
@@ -582,7 +663,7 @@ function PrivacyTab({ settings, onSave, showToast }) {
       <div className="tab-panel__header">
         <div>
           <h3>Shield Privacy & 2-Factor Authentication</h3>
-          <p>Configure hardware security keys, stealth mode verifications, and cryptographic isolation.</p>
+          <p>Set up an authenticator app and manage how verification activity and threat data are handled.</p>
         </div>
       </div>
 
@@ -595,7 +676,7 @@ function PrivacyTab({ settings, onSave, showToast }) {
             </div>
             <div>
               <h4>Two-Factor Authentication (2FA)</h4>
-              <p>Require an authenticator code (Google Authenticator / Authy) on new device sign-ins.</p>
+              <p>Use a time-based code from Google Authenticator, Microsoft Authenticator, Authy, or another TOTP app when signing in.</p>
             </div>
           </div>
           <div className="toggle-card__switch">
@@ -604,6 +685,7 @@ function PrivacyTab({ settings, onSave, showToast }) {
                 type="checkbox"
                 checked={twoFactor}
                 onChange={handleToggle2Fa}
+                disabled={saving}
               />
               <span className="slider round" />
             </label>
@@ -618,7 +700,7 @@ function PrivacyTab({ settings, onSave, showToast }) {
             </div>
             <div>
               <h4>Incognito Company Verification Mode</h4>
-              <p>Mask your student identity and IP address when running background checks on suspected employers.</p>
+              <p>Keep company searches and checks out of your local history and omit your account token from those requests. Your network provider may still see your IP address.</p>
             </div>
           </div>
           <div className="toggle-card__switch">
@@ -627,8 +709,7 @@ function PrivacyTab({ settings, onSave, showToast }) {
                 type="checkbox"
                 checked={incognito}
                 onChange={(e) => {
-                  setIncognito(e.target.checked);
-                  onSave({ incognitoVerification: e.target.checked });
+                  savePreference("incognitoVerification", e.target.checked, setIncognito);
                 }}
               />
               <span className="slider round" />
@@ -653,8 +734,7 @@ function PrivacyTab({ settings, onSave, showToast }) {
                 type="checkbox"
                 checked={telemetry}
                 onChange={(e) => {
-                  setTelemetry(e.target.checked);
-                  onSave({ telemetrySharing: e.target.checked });
+                  savePreference("telemetrySharing", e.target.checked, setTelemetry);
                 }}
               />
               <span className="slider round" />
@@ -663,9 +743,9 @@ function PrivacyTab({ settings, onSave, showToast }) {
         </div>
       </div>
 
-      {/* 2FA Setup Modal Simulator */}
+      {/* Authenticator enrollment and disable confirmation */}
       <AnimatePresence>
-        {showQrModal && (
+        {(showQrModal || showDisableModal) && (
           <div className="settings-modal-overlay">
             <motion.div
               className="settings-modal glass-card"
@@ -673,39 +753,78 @@ function PrivacyTab({ settings, onSave, showToast }) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
             >
-              <div className="modal-header">
-                <h3>Set Up Authenticator App</h3>
-                <p>Scan this QR code with Google Authenticator or 1Password to activate 2FA.</p>
-              </div>
-
-              {/* Mock QR Canvas Visual */}
-              <div className="mock-qr-wrap">
-                <div className="mock-qr-code">
-                  <div className="qr-corner qr-top-left" />
-                  <div className="qr-corner qr-top-right" />
-                  <div className="qr-corner qr-bottom-left" />
-                  <div className="qr-center-shield">
-                    <Shield size={28} color="#38bdf8" />
+              {showQrModal ? (
+                <>
+                  <div className="modal-header">
+                    <h3>Set Up Authenticator App</h3>
+                    <p>Scan this QR code with Google Authenticator, Microsoft Authenticator, Authy, or any TOTP app.</p>
                   </div>
-                </div>
-                <span className="secret-key-text">Secret: <strong>ISHIELD-9842-K10X-Z980</strong></span>
-              </div>
+                  {setupInfo && (
+                    <div className="authenticator-setup">
+                      <img className="authenticator-qr" src={setupInfo.qrCodeDataUrl} alt="Authenticator setup QR code" />
+                      <span className="secret-key-text">
+                        Manual setup key: <strong>{setupInfo.secret}</strong>
+                      </span>
+                    </div>
+                  )}
+                  <div className="form-group">
+                    <label htmlFor="authenticator-enrollment-code">6-digit authenticator code</label>
+                    <div className="input-wrap">
+                      <input
+                        id="authenticator-enrollment-code"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={authCode}
+                        onChange={(e) => setAuthCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="modal-header">
+                    <h3>Disable two-factor authentication?</h3>
+                    <p>Confirm with the current authenticator code to turn off this account protection.</p>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="authenticator-disable-code">6-digit authenticator code</label>
+                    <div className="input-wrap">
+                      <input
+                        id="authenticator-disable-code"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={authCode}
+                        onChange={(e) => setAuthCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="modal-actions">
                 <LiquidButton
                   variant="ghost"
                   size="md"
                   showArrow={false}
-                  onClick={() => setShowQrModal(false)}
+                  onClick={() => {
+                    setShowQrModal(false);
+                    setShowDisableModal(false);
+                    setAuthCode("");
+                  }}
                 >
                   Cancel
                 </LiquidButton>
                 <LiquidButton
                   variant="cyan"
                   size="md"
-                  onClick={handleConfirm2Fa}
+                  onClick={showQrModal ? handleConfirm2Fa : handleDisable2Fa}
+                  disabled={saving || authCode.length !== 6}
                 >
-                  Confirm 2FA Activation
+                  {saving ? "Verifying..." : showQrModal ? "Verify & Enable 2FA" : "Verify & Disable 2FA"}
                 </LiquidButton>
               </div>
             </motion.div>
@@ -719,45 +838,52 @@ function PrivacyTab({ settings, onSave, showToast }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // 4. ACTIVE SESSIONS TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function SessionsTab({ showToast }) {
-  const [sessions, setSessions] = useState([
-    {
-      id: "sess-1",
-      device: "Windows PC (Google Chrome 128)",
-      location: "Mumbai, Maharashtra, India",
-      ip: "103.21.144.92",
-      current: true,
-      icon: Laptop,
-      lastActive: "Active Now",
-    },
-    {
-      id: "sess-2",
-      device: "Apple iPhone 15 Pro (Safari Mobile)",
-      location: "Bangalore, Karnataka, India",
-      ip: "49.207.210.14",
-      current: false,
-      icon: Smartphone,
-      lastActive: "2 hours ago",
-    },
-    {
-      id: "sess-3",
-      device: "MacBook Pro M3 (Firefox Nightly)",
-      location: "New Delhi, India",
-      ip: "115.110.245.18",
-      current: false,
-      icon: Laptop,
-      lastActive: "3 days ago",
-    },
-  ]);
+function SessionsTab({ user, showToast }) {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
 
-  function handleRevoke(id) {
-    setSessions(sessions.filter((s) => s.id !== id));
-    showToast("Session successfully revoked and terminated.");
+  useEffect(() => {
+    let active = true;
+    getActiveSessions()
+      .then((items) => {
+        if (active) setSessions(items);
+      })
+      .catch((err) => {
+        if (active) showToast(err.message, "error");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.email]);
+
+  async function handleRevoke(id) {
+    setWorking(true);
+    try {
+      await revokeSession(id);
+      setSessions((current) => current.filter((session) => session.id !== id));
+      showToast("Session access revoked.");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setWorking(false);
+    }
   }
 
-  function handleRevokeAllOther() {
-    setSessions(sessions.filter((s) => s.current));
-    showToast("Logged out of all other remote device sessions.");
+  async function handleRevokeAllOther() {
+    setWorking(true);
+    try {
+      const count = await revokeOtherSessions();
+      setSessions((current) => current.filter((session) => session.current));
+      showToast(`Signed out of ${count} other session${count === 1 ? "" : "s"}.`);
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setWorking(false);
+    }
   }
 
   return (
@@ -771,7 +897,7 @@ function SessionsTab({ showToast }) {
       <div className="tab-panel__header">
         <div>
           <h3>Active Device Sessions</h3>
-          <p>These devices are currently logged into your InternShield student security account.</p>
+          <p>Devices that have an active sign-in to your account, based on their last authenticated activity.</p>
         </div>
         {sessions.length > 1 && (
           <LiquidButton
@@ -779,13 +905,18 @@ function SessionsTab({ showToast }) {
             size="sm"
             showArrow={false}
             onClick={handleRevokeAllOther}
+            disabled={working}
           >
             Log Out Other Devices
           </LiquidButton>
         )}
       </div>
 
-      <div className="sessions-list">
+      {loading ? (
+        <p className="sessions-empty">Loading active sessions…</p>
+      ) : sessions.length === 0 ? (
+        <p className="sessions-empty">No active sessions found.</p>
+      ) : <div className="sessions-list">
         <AnimatePresence>
           {sessions.map((sess) => (
             <motion.div
@@ -799,19 +930,19 @@ function SessionsTab({ showToast }) {
             >
               <div className="session-card__left">
                 <div className="session-card__icon-wrap">
-                  <sess.icon size={22} color={sess.current ? "#38bdf8" : "var(--text-secondary)"} />
+                  {/mobile|android|iphone|ipad/i.test(sess.device)
+                    ? <Smartphone size={22} color={sess.current ? "#38bdf8" : "var(--text-secondary)"} />
+                    : <Laptop size={22} color={sess.current ? "#38bdf8" : "var(--text-secondary)"} />}
                 </div>
                 <div>
                   <div className="session-card__title-row">
-                    <strong>{sess.device}</strong>
+                    <strong>{describeDevice(sess.device)}</strong>
                     {sess.current && <span className="session-badge-current">This Device</span>}
                   </div>
                   <div className="session-card__meta">
-                    <span>📍 {sess.location}</span>
+                    <span>Last active {formatSessionTime(sess.lastActiveAt)}</span>
                     <span>•</span>
-                    <span>IP: {sess.ip}</span>
-                    <span>•</span>
-                    <span>{sess.lastActive}</span>
+                    <span>Signed in {formatSessionTime(sess.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -822,6 +953,7 @@ function SessionsTab({ showToast }) {
                     type="button"
                     className="session-revoke-btn"
                     onClick={() => handleRevoke(sess.id)}
+                    disabled={working}
                   >
                     Revoke Access
                   </button>
@@ -830,24 +962,60 @@ function SessionsTab({ showToast }) {
             </motion.div>
           ))}
         </AnimatePresence>
-      </div>
+      </div>}
     </motion.div>
   );
+}
+
+function describeDevice(userAgent = "") {
+  const browser = userAgent.match(/(Edg|Chrome|Firefox|Safari)\/[\d.]+/i)?.[0] || "Browser";
+  const platform = userAgent.match(/(Windows NT|Mac OS X|Android|iPhone|iPad|Linux)[^;) ]*/i)?.[0] || "Unknown device";
+  return `${platform} · ${browser}`;
+}
+
+function formatSessionTime(value) {
+  if (!value) return "unknown";
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) return "unknown";
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - timestamp.getTime()) / 60_000));
+  if (elapsedMinutes < 1) return "just now";
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`;
+  if (elapsedMinutes < 1440) return `${Math.floor(elapsedMinutes / 60)}h ago`;
+  return `${Math.floor(elapsedMinutes / 1440)}d ago`;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 5. NOTIFICATIONS & ALERTS TAB
 // ══════════════════════════════════════════════════════════════════════════════
-function NotificationsTab({ settings, onSave, showToast }) {
+function NotificationsTab({ settings, onSave }) {
   const [scamAlerts, setScamAlerts] = useState(settings.scamAlertsEmail);
   const [weeklyDigest, setWeeklyDigest] = useState(settings.weeklyThreatDigest);
   const [community, setCommunity] = useState(settings.communityAlerts);
   const [webhook, setWebhook] = useState(settings.discordWebhook || "");
 
-  function handleSaveWebhook(e) {
+  useEffect(() => {
+    setScamAlerts(settings.scamAlertsEmail);
+    setWeeklyDigest(settings.weeklyThreatDigest);
+    setCommunity(settings.communityAlerts);
+    setWebhook(settings.discordWebhook || "");
+  }, [settings]);
+
+  async function savePreference(key, value, setter) {
+    try {
+      await onSave({ [key]: value });
+      setter(value);
+    } catch {
+      // The parent displays the save error and keeps the previous value.
+    }
+  }
+
+  async function handleSaveWebhook(e) {
     e.preventDefault();
-    onSave({ discordWebhook: webhook.trim() });
-    showToast("Campus Webhook endpoint updated!");
+    try {
+      await onSave({ discordWebhook: webhook.trim() });
+    } catch {
+      // The parent displays the save error.
+    }
   }
 
   return (
@@ -860,7 +1028,7 @@ function NotificationsTab({ settings, onSave, showToast }) {
     >
       <div className="tab-panel__header">
         <div>
-          <h3>Threat Notifications & Campus Alerts</h3>
+          <h3>Notifications & Campus Alerts</h3>
           <p>Stay informed whenever new fraudulent schemes target your college campus or target roles.</p>
         </div>
       </div>
@@ -882,8 +1050,7 @@ function NotificationsTab({ settings, onSave, showToast }) {
                 type="checkbox"
                 checked={scamAlerts}
                 onChange={(e) => {
-                  setScamAlerts(e.target.checked);
-                  onSave({ scamAlertsEmail: e.target.checked });
+                  savePreference("scamAlertsEmail", e.target.checked, setScamAlerts);
                 }}
               />
               <span className="slider round" />
@@ -907,8 +1074,7 @@ function NotificationsTab({ settings, onSave, showToast }) {
                 type="checkbox"
                 checked={weeklyDigest}
                 onChange={(e) => {
-                  setWeeklyDigest(e.target.checked);
-                  onSave({ weeklyThreatDigest: e.target.checked });
+                  savePreference("weeklyThreatDigest", e.target.checked, setWeeklyDigest);
                 }}
               />
               <span className="slider round" />
@@ -932,8 +1098,7 @@ function NotificationsTab({ settings, onSave, showToast }) {
                 type="checkbox"
                 checked={community}
                 onChange={(e) => {
-                  setCommunity(e.target.checked);
-                  onSave({ communityAlerts: e.target.checked });
+                  savePreference("communityAlerts", e.target.checked, setCommunity);
                 }}
               />
               <span className="slider round" />
@@ -946,7 +1111,7 @@ function NotificationsTab({ settings, onSave, showToast }) {
       <form onSubmit={handleSaveWebhook} className="settings-form" style={{ marginTop: 28 }}>
         <h4>Campus Discord / Slack Webhook</h4>
         <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: 12 }}>
-          Broadcast real-time scam alerts directly to your university's placement WhatsApp/Discord channel.
+          Save an HTTPS Discord or Slack webhook endpoint to your account's alert preferences.
         </p>
         <div className="form-group">
           <div className="input-wrap">
