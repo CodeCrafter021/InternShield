@@ -3,6 +3,41 @@
    Refined Spacing, Stealth Obsidian Theme & Uniform Rhythm
    ============================================================ */
 
+.about-page .about-hero--simple {
+  grid-template-columns: 1fr;
+  min-height: auto;
+  padding-top: 100px;
+  padding-bottom: 72px;
+}
+
+.concise-info-section {
+  padding-top: 20px;
+  padding-bottom: 72px;
+}
+
+.concise-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.concise-info-card h3 {
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.concise-info-card p {
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .concise-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .about-page {
   position: relative;
   min-height: 100vh;

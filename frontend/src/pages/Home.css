@@ -35,6 +35,39 @@
    Refined Spacing, Modern Glassmorphism & High-Performance Layout
    ============================================================ */
 
+.home-summary-section {
+  padding-top: 40px;
+  padding-bottom: 36px;
+}
+
+.home-steps {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 22px 28px;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.home-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.home-steps li span {
+  flex: 0 0 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  font-weight: 700;
+}
+
 /* ═══════════════════════════════════════
    1. GLOBAL SECTION RHYTHM & HEADERS
    ═══════════════════════════════════════ */

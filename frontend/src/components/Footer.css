@@ -2,6 +2,65 @@
    Footer — Apple iOS 26 Ultra-Attractive Liquid Glass Footer
    ========================================================================== */
 
+.liquid-footer--simple {
+  margin-top: 64px;
+}
+
+.liquid-footer--simple .liquid-footer__inner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 18px 32px;
+  padding-top: 28px;
+  padding-bottom: 24px;
+}
+
+.liquid-footer--simple .liquid-footer__waves {
+  display: none;
+}
+
+.liquid-footer--simple .liquid-footer__brand {
+  margin: 0;
+}
+
+.liquid-footer--simple .liquid-footer__simple-links {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.liquid-footer--simple .liquid-footer__simple-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.liquid-footer--simple .liquid-footer__simple-links a:hover {
+  color: #38bdf8;
+}
+
+.liquid-footer--simple .liquid-footer__simple-copy {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.liquid-footer--simple .liquid-footer__bottom {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .liquid-footer--simple .liquid-footer__inner {
+    grid-template-columns: 1fr;
+  }
+
+  .liquid-footer--simple .liquid-footer__simple-links {
+    justify-content: flex-start;
+  }
+}
+
 .liquid-footer {
   position: relative;
   margin-top: 110px;
