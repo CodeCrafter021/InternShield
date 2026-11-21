@@ -7,9 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
 
 /**
  * Finishes the "Sign in with Google / GitHub" flow.
@@ -24,12 +26,19 @@ public class OAuthService {
     private static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {};
     private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST = new ParameterizedTypeReference<>() {};
 
-    private final RestClient http = RestClient.create();
+    private final RestClient http;
 
     @Value("${app.oauth.google.client-id}") private String googleId;
     @Value("${app.oauth.google.client-secret}") private String googleSecret;
     @Value("${app.oauth.github.client-id}") private String githubId;
     @Value("${app.oauth.github.client-secret}") private String githubSecret;
+
+    public OAuthService() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+        requestFactory.setReadTimeout(Duration.ofSeconds(10));
+        this.http = RestClient.builder().requestFactory(requestFactory).build();
+    }
 
     public OAuthProfile fetchProfile(String provider, String code, String redirectUri) {
         return switch (provider) {

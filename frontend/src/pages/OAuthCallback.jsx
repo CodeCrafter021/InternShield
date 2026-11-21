@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { redirectUriFor } from "../services/oauth.js";
-import { waitForBackend } from "../services/api.js";
+import { warmUpBackend } from "../services/api.js";
 
 export default function OAuthCallback() {
   const { provider } = useParams();
@@ -29,13 +29,10 @@ export default function OAuthCallback() {
     if (!code || !state || state !== saved) return setError("Invalid sign-in request. Please try again.");
 
     (async () => {
-      // 1) wait until the (free, sleeping) server is really awake
-      const up = await waitForBackend({ onWaiting: () => setSlow(true) });
-      if (!up) {
-        setError("The server did not start in time. Please go back and try again in a minute.");
-        return;
-      }
-      // 2) only now send the one-time login code
+      // Warmup runs in parallel with the OAuth exchange. It avoids a second
+      // 180-second polling phase after the provider redirects back.
+      setSlow(true);
+      void warmUpBackend();
       try {
         const result = await oauthLogin(provider, code, redirectUriFor(provider));
         if (result?.twoFactorRequired) {
