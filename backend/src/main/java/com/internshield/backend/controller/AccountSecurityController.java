@@ -157,11 +157,14 @@ public class AccountSecurityController {
             if (user.getSettingsJson() != null && !user.getSettingsJson().isBlank()) {
                 Map<String, Object> stored = objectMapper.readValue(
                         user.getSettingsJson(), new TypeReference<>() {});
-                stored.keySet().retainAll(SETTING_KEYS);
-                result.putAll(stored);
+                if (stored != null) {
+                    stored.keySet().retainAll(SETTING_KEYS);
+                    result.putAll(stored);
+                }
             }
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Could not read saved account settings.", e);
+            // Older or interrupted writes may contain malformed JSON.
+            // Recover with the current defaults instead of blocking the account.
         }
         result.put("twoFactorEnabled", user.isTwoFactorEnabled());
         return result;

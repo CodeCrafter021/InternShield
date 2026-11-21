@@ -921,6 +921,16 @@ export default function Dashboard() {
                     onClick={() => fileInputRef.current?.click()}
                     style={{ padding: 48 }}
                   >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) handleFileSelect(file);
+                      }}
+                      style={{ display: "none" }}
+                    />
                     <UploadCloud size={52} color="#38bdf8" />
                     <div className="scanner-widget__drop-text">
                       <strong style={{ fontSize: "1.1rem" }}>
@@ -968,7 +978,10 @@ export default function Dashboard() {
                       size="md"
                       showArrow={false}
                       disabled={scannerSimulating}
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
                     >
                       {scannerSimulating
                         ? "Running AI Heuristics..."

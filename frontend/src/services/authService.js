@@ -1,5 +1,5 @@
 import api, { waitForBackend } from "./api";
-import { userKey, purgeUserData, cacheUserSettings } from "./userStorage";
+import { userKey, purgeUserData, cacheUserSettings, getCachedUserSettings } from "./userStorage";
 
 const TOKEN_KEY = "internshield_token";
 const SESSION_KEY = "internshield_session";
@@ -207,12 +207,20 @@ export const DEFAULT_USER_SETTINGS = {
 };
 
 export async function getUserSettings() {
+  await waitForBackend();
   try {
     const response = await api.get("/account/settings");
     const settings = { ...DEFAULT_USER_SETTINGS, ...response.data };
     cacheUserSettings(settings);
     return settings;
   } catch (err) {
+    const cached = getCachedUserSettings();
+    if (Object.keys(cached).length > 0) {
+      return { ...DEFAULT_USER_SETTINGS, ...cached };
+    }
+    if (err?.response?.status === 401) {
+      throw new Error("Your session expired. Please sign in again.");
+    }
     throw new Error(friendlyError(err, "Could not load account settings."));
   }
 }
@@ -229,6 +237,7 @@ export async function updateUserSettings(newSettings) {
 }
 
 export async function getActiveSessions() {
+  await waitForBackend();
   try {
     const response = await api.get("/account/sessions");
     return response.data;
