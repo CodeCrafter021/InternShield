@@ -46,6 +46,9 @@ public class User {
     @Column(length = 4000)
     private String settingsJson = "{}";
 
+    @Column
+    private Integer telemetryConsentVersion = 0;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getEmail() { return email; }
@@ -68,4 +71,10 @@ public class User {
     public void setTwoFactorEnabled(boolean twoFactorEnabled) { this.twoFactorEnabled = twoFactorEnabled; }
     public String getSettingsJson() { return settingsJson; }
     public void setSettingsJson(String settingsJson) { this.settingsJson = settingsJson; }
+    public int getTelemetryConsentVersion() {
+        return telemetryConsentVersion == null ? 0 : telemetryConsentVersion;
+    }
+    public void setTelemetryConsentVersion(int telemetryConsentVersion) {
+        this.telemetryConsentVersion = telemetryConsentVersion;
+    }
 }

@@ -198,11 +198,10 @@ export async function resetPasswordWithOtp(email, otp, newPassword) {
 export const DEFAULT_USER_SETTINGS = {
   twoFactorEnabled: false,
   incognitoVerification: false,
-  telemetrySharing: true,
+  telemetrySharing: false,
   scamAlertsEmail: true,
   weeklyThreatDigest: true,
   communityAlerts: true,
-  apiKey: "",
 };
 
 export async function getUserSettings() {
@@ -213,12 +212,12 @@ export async function getUserSettings() {
     cacheUserSettings(settings);
     return settings;
   } catch (err) {
+    if (err?.response?.status === 401) {
+      throw new Error("Your session expired. Please sign in again.");
+    }
     const cached = getCachedUserSettings();
     if (Object.keys(cached).length > 0) {
       return { ...DEFAULT_USER_SETTINGS, ...cached };
-    }
-    if (err?.response?.status === 401) {
-      throw new Error("Your session expired. Please sign in again.");
     }
     throw new Error(friendlyError(err, "Could not load account settings."));
   }
@@ -229,6 +228,7 @@ export async function updateUserSettings(newSettings) {
     const response = await api.put("/account/settings", newSettings);
     const settings = { ...DEFAULT_USER_SETTINGS, ...response.data };
     cacheUserSettings(settings);
+    window.dispatchEvent(new CustomEvent("internshield:settings-updated", { detail: settings }));
     return settings;
   } catch (err) {
     throw new Error(friendlyError(err, "Could not save account settings."));

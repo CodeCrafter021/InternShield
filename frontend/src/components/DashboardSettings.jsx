@@ -724,7 +724,7 @@ function PrivacyTab({ settings, onSave, onTwoFactorChange, showToast }) {
             </div>
             <div>
               <h4>Anonymous Threat Telemetry Sharing</h4>
-              <p>Contribute anonymized fraud patterns and fake recruiter signatures to help protect fellow students.</p>
+              <p>When enabled, share only the scan risk category as an anonymous aggregate. Company names, account details and document contents are never sent.</p>
             </div>
           </div>
           <div className="toggle-card__switch">
@@ -1029,7 +1029,7 @@ function NotificationsTab({ settings, onSave }) {
             </div>
             <div>
               <h4>Critical Scam Email Alerts</h4>
-              <p>Receive instant notifications if a company you previously searched gets confirmed as fraudulent.</p>
+              <p>Receive an email when a company reaches InternShield's critical community-report threshold.</p>
             </div>
           </div>
           <div className="toggle-card__switch">
@@ -1053,7 +1053,7 @@ function NotificationsTab({ settings, onSave }) {
             </div>
             <div>
               <h4>Weekly Internship Threat Digest</h4>
-              <p>A concise summary of top intercepted phishing vectors and blacklisted recruitment firms.</p>
+              <p>Receive a weekly email summary of community scam reports from the previous seven days.</p>
             </div>
           </div>
           <div className="toggle-card__switch">

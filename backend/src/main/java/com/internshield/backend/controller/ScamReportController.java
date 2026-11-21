@@ -2,7 +2,8 @@ package com.internshield.backend.controller;
 
 import com.internshield.backend.model.ScamReport;
 import com.internshield.backend.repository.ScamReportRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.internshield.backend.security.ThreatReportService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,22 +12,25 @@ import java.util.List;
 @RequestMapping("/api/reports")
 public class ScamReportController {
 
-    @Autowired
-    private ScamReportRepository scamReportRepository;
+    private final ScamReportRepository scamReportRepository;
+    private final ThreatReportService threatReportService;
 
-    // 1. To submit a new Sakam report (POST)
-    @PostMapping
-    public ScamReport submitReport(@RequestBody ScamReport scamReport) {
-        // Reports are anonymous: we deliberately do NOT store who submitted them.
-        scamReport.setId(null);
-        scamReport.setCompanyName(limit(scamReport.getCompanyName(), 150));
-        scamReport.setScamType(limit(scamReport.getScamType(), 100));
-        scamReport.setDescription(limit(scamReport.getDescription(), 2000));
-        scamReport.setContactInfo(limit(scamReport.getContactInfo(), 200));
-        return scamReportRepository.save(scamReport);
+    public ScamReportController(ScamReportRepository scamReportRepository,
+                                ThreatReportService threatReportService) {
+        this.scamReportRepository = scamReportRepository;
+        this.threatReportService = threatReportService;
     }
 
-    // 2. To view all scam reports (GET)
+    @PostMapping
+    public ResponseEntity<?> submitReport(@RequestBody ScamReport scamReport) {
+        try {
+            return ResponseEntity.ok(threatReportService.submit(scamReport));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Kept for authenticated moderation tools.
     @GetMapping
     public List<ScamReport> getAllReports() {
         return scamReportRepository.findAll();
@@ -37,9 +41,4 @@ public class ScamReportController {
         return scamReportRepository.findByCompanyId(companyId);
     }
 
-    private static String limit(String s, int max) {
-        if (s == null) return null;
-        s = s.trim();
-        return s.length() > max ? s.substring(0, max) : s;
-    }
 }

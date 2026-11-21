@@ -178,24 +178,6 @@ function saveChecksHistoryDB(checks) {
   localStorage.setItem(userKey(CHECKS_KEY), JSON.stringify(checks));
 }
 
-function getCommunityAlertsDB() {
-  const raw = localStorage.getItem(userKey(ALERTS_KEY));
-  if (!raw) {
-    const initial = DEMO ? DEFAULT_ALERTS : [];
-    localStorage.setItem(userKey(ALERTS_KEY), JSON.stringify(initial));
-    return initial;
-  }
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return DEFAULT_ALERTS;
-  }
-}
-
-function saveCommunityAlertsDB(alerts) {
-  localStorage.setItem(userKey(ALERTS_KEY), JSON.stringify(alerts));
-}
-
 function formatRelativeDate(dateStr) {
   if (!dateStr) return "Just now";
   const date = new Date(dateStr);
@@ -344,6 +326,12 @@ export async function runCheck(companyOrId) {
 
   if (getCachedUserSettings().incognitoVerification) return result;
 
+  if (getCachedUserSettings().telemetrySharing
+      && localStorage.getItem("internshield_token")) {
+    void api.post("/telemetry/check", { riskCategory: result.risk })
+      .catch(() => console.warn("Anonymous threat telemetry could not be recorded."));
+  }
+
   // Record into real history database
   const history = getChecksHistoryDB();
   const existingIdx = history.findIndex((h) => h.id === company.id);
@@ -373,7 +361,23 @@ export async function getDashboardData() {
   await delay(150);
 
   const history = getChecksHistoryDB();
-  const alerts = getCommunityAlertsDB();
+  let alerts = [];
+  if (getCachedUserSettings().communityAlerts !== false) {
+    const response = await api.get("/account/community-alerts");
+    alerts = Array.isArray(response.data) ? response.data.map((alert) => ({
+      id: String(alert.id),
+      title: alert.title,
+      company: alert.companyName,
+      reporter: alert.reporter,
+      time: formatRelativeDate(alert.createdAt),
+      severity: alert.severity,
+      detail: alert.detail,
+      createdAt: alert.createdAt,
+    })) : [];
+  }
+  if (DEMO && alerts.length === 0 && getCachedUserSettings().communityAlerts !== false) {
+    alerts = DEFAULT_ALERTS;
+  }
 
   const totalChecks = history.length;
   const safeChecks = history.filter((h) => h.score >= 70 || h.risk === "LOW").length;
@@ -474,50 +478,19 @@ export async function getDashboardData() {
 }
 
 // ── Submit Real Community Threat Report ──
-export async function submitThreatReport({ companyName, reason, reporterName = "Verified Student" }) {
-  await delay(300);
-
-  const alerts = getCommunityAlertsDB();
-  const newAlert = {
-    id: `alt-${Date.now()}`,
-    title: `Suspicious activity flagged: ${companyName}`,
-    company: companyName,
-    reporter: reporterName,
-    time: "Just now",
-    severity: "HIGH",
-    detail: reason,
-    createdAt: new Date().toISOString(),
-  };
-
-  alerts.unshift(newAlert);
-  saveCommunityAlertsDB(alerts);
-
-  // Also flag or create company as threat
-  const companies = getCompaniesDB();
-  const existing = companies.find((c) => c.name.toLowerCase() === companyName.toLowerCase());
-  if (existing) {
-    existing.reports = (existing.reports || 0) + 1;
-    existing.risk = "HIGH";
-    existing.score = Math.max(15, existing.score - 30);
-  } else {
-    companies.unshift({
-      id: `comp-rep-${Date.now()}`,
-      name: companyName,
-      domain: `${companyName.replace(/\s+/g, "").toLowerCase()}-flagged.org`,
-      category: "Reported Scheme",
-      score: 22,
-      risk: "HIGH",
-      cin: "UNREGISTERED",
-      verifiedDate: new Date().toISOString(),
-      reports: 1,
-      mcaStatus: "NOT_FOUND",
-      emailDomain: "gmail.com",
-      description: `Reported by student: ${reason}`,
+export async function submitThreatReport({ companyName, reason }) {
+  try {
+    const response = await api.post("/reports", {
+      companyName: companyName.trim(),
+      scamType: "Community report",
+      description: reason.trim(),
     });
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.error || "Could not submit the community report. Please try again."
+    );
   }
-  saveCompaniesDB(companies);
-
-  return newAlert;
 }
 
 // ── Analyze Offer Letter (Real File / Content Reader) ──

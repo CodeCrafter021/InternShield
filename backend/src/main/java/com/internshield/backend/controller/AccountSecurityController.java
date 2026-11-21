@@ -4,12 +4,15 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.internshield.backend.model.User;
+import com.internshield.backend.repository.CommunityAlertRepository;
 import com.internshield.backend.repository.UserRepository;
 import com.internshield.backend.security.JwtUtil;
 import com.internshield.backend.security.TwoFactorService;
 import com.internshield.backend.security.UserSessionService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,28 +32,32 @@ import java.util.Set;
 @RequestMapping("/api/account")
 public class AccountSecurityController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AccountSecurityController.class);
+
     private static final Map<String, Object> DEFAULT_SETTINGS = Map.of(
             "twoFactorEnabled", false,
             "incognitoVerification", false,
-            "telemetrySharing", true,
+            "telemetrySharing", false,
             "scamAlertsEmail", true,
             "weeklyThreatDigest", true,
-            "communityAlerts", true,
-            "apiKey", "");
+            "communityAlerts", true);
     private static final Set<String> SETTING_KEYS = DEFAULT_SETTINGS.keySet();
     private static final Set<String> PREFERENCE_KEYS = Set.of(
             "incognitoVerification", "telemetrySharing", "scamAlertsEmail",
-            "weeklyThreatDigest", "communityAlerts", "apiKey");
+            "weeklyThreatDigest", "communityAlerts");
 
     private final UserRepository users;
+    private final CommunityAlertRepository communityAlerts;
     private final UserSessionService sessions;
     private final TwoFactorService twoFactor;
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AccountSecurityController(UserRepository users, UserSessionService sessions,
+    public AccountSecurityController(UserRepository users, CommunityAlertRepository communityAlerts,
+                                     UserSessionService sessions,
                                      TwoFactorService twoFactor, JwtUtil jwtUtil) {
         this.users = users;
+        this.communityAlerts = communityAlerts;
         this.sessions = sessions;
         this.twoFactor = twoFactor;
         this.jwtUtil = jwtUtil;
@@ -67,6 +75,9 @@ public class AccountSecurityController {
         User user = findUser(auth.getName());
         if (user == null) return error(404, "User not found");
         if (!PREFERENCE_KEYS.containsAll(updates.keySet())) return error(400, "Unsupported setting.");
+        if (Boolean.TRUE.equals(updates.get("telemetrySharing"))) {
+            user.setTelemetryConsentVersion(1);
+        }
 
         Map<String, Object> merged = settingsFor(user);
         merged.putAll(updates);
@@ -77,6 +88,25 @@ public class AccountSecurityController {
         } catch (JsonProcessingException e) {
             return error(500, "Could not save account settings.");
         }
+    }
+
+    @GetMapping("/community-alerts")
+    public ResponseEntity<?> communityAlerts(Authentication auth) {
+        User user = findUser(auth.getName());
+        if (user == null) return error(404, "User not found");
+        if (!Boolean.TRUE.equals(settingsFor(user).get("communityAlerts"))) {
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(communityAlerts.findAllByOrderByCreatedAtDesc().stream()
+                .map(alert -> Map.of(
+                        "id", alert.getId(),
+                        "title", alert.getTitle(),
+                        "companyName", alert.getCompanyName(),
+                        "reporter", alert.getReporter() == null ? "Anonymous Student" : alert.getReporter(),
+                        "severity", alert.getSeverity() == null ? "HIGH" : alert.getSeverity(),
+                        "detail", alert.getDetail() == null ? "" : alert.getDetail(),
+                        "createdAt", alert.getCreatedAt() == null ? "" : alert.getCreatedAt()))
+                .toList());
     }
 
     @GetMapping("/sessions")
@@ -158,8 +188,10 @@ public class AccountSecurityController {
                 }
             }
         } catch (JsonProcessingException e) {
-            // Older or interrupted writes may contain malformed JSON.
-            // Recover with the current defaults instead of blocking the account.
+            LOGGER.warn("Could not parse saved account preferences; returning defaults.", e);
+        }
+        if (user.getTelemetryConsentVersion() < 1) {
+            result.put("telemetrySharing", false);
         }
         result.put("twoFactorEnabled", user.isTwoFactorEnabled());
         return result;

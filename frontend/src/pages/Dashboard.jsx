@@ -100,6 +100,8 @@ export default function Dashboard() {
   const [reportCompany, setReportCompany] = useState("");
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportError, setReportError] = useState("");
 
   async function loadDashboardData() {
     try {
@@ -119,6 +121,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboardData();
+  }, []);
+
+  useEffect(() => {
+    function handleSettingsUpdated(event) {
+      if (event.detail?.communityAlerts === false) {
+        setCommunityAlerts([]);
+      } else if (event.detail?.communityAlerts === true) {
+        loadDashboardData();
+      }
+    }
+    window.addEventListener("internshield:settings-updated", handleSettingsUpdated);
+    return () => window.removeEventListener("internshield:settings-updated", handleSettingsUpdated);
   }, []);
 
   function handleSaveProfile(updated) {
@@ -351,22 +365,26 @@ export default function Dashboard() {
   async function handleReportSubmit(e) {
     e.preventDefault();
     if (!reportCompany.trim() || !reportReason.trim()) return;
-    setReportSubmitted(true);
+    setReportSubmitting(true);
+    setReportError("");
+    setReportSubmitted(false);
     try {
       await submitThreatReport({
         companyName: reportCompany.trim(),
         reason: reportReason.trim(),
-        reporterName: `Verified Student (${user?.university ? user.university.split(",")[0] : "IIT Bombay"})`,
       });
       await loadDashboardData();
+      setReportSubmitted(true);
       setTimeout(() => {
         setReportCompany("");
         setReportReason("");
         setReportSubmitted(false);
       }, 2500);
     } catch (err) {
-      console.error("Report submit failed:", err);
+      setReportError(err.message || "Could not submit the report.");
       setReportSubmitted(false);
+    } finally {
+      setReportSubmitting(false);
     }
   }
 
@@ -866,9 +884,14 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
+                    {reportError && <p role="alert" className="settings-error-banner">{reportError}</p>}
                     <div className="form-actions">
-                      <LiquidButton variant="cyan" size="sm" type="submit">
-                        {reportSubmitted ? "Report Submitted to Review Queue!" : "Submit Community Report"}
+                      <LiquidButton variant="cyan" size="sm" type="submit" disabled={reportSubmitting}>
+                        {reportSubmitting
+                          ? "Submitting..."
+                          : reportSubmitted
+                          ? "Report Submitted!"
+                          : "Submit Community Report"}
                       </LiquidButton>
                     </div>
                   </form>
