@@ -202,7 +202,6 @@ export const DEFAULT_USER_SETTINGS = {
   scamAlertsEmail: true,
   weeklyThreatDigest: true,
   communityAlerts: true,
-  discordWebhook: "",
   apiKey: "",
 };
 

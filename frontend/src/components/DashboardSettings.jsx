@@ -5,7 +5,6 @@ import {
   Lock,
   Smartphone,
   Bell,
-  Code2,
   CheckCircle2,
   Check,
   AlertTriangle,
@@ -991,13 +990,11 @@ function NotificationsTab({ settings, onSave }) {
   const [scamAlerts, setScamAlerts] = useState(settings.scamAlertsEmail);
   const [weeklyDigest, setWeeklyDigest] = useState(settings.weeklyThreatDigest);
   const [community, setCommunity] = useState(settings.communityAlerts);
-  const [webhook, setWebhook] = useState(settings.discordWebhook || "");
 
   useEffect(() => {
     setScamAlerts(settings.scamAlertsEmail);
     setWeeklyDigest(settings.weeklyThreatDigest);
     setCommunity(settings.communityAlerts);
-    setWebhook(settings.discordWebhook || "");
   }, [settings]);
 
   async function savePreference(key, value, setter) {
@@ -1006,15 +1003,6 @@ function NotificationsTab({ settings, onSave }) {
       setter(value);
     } catch {
       // The parent displays the save error and keeps the previous value.
-    }
-  }
-
-  async function handleSaveWebhook(e) {
-    e.preventDefault();
-    try {
-      await onSave({ discordWebhook: webhook.trim() });
-    } catch {
-      // The parent displays the save error.
     }
   }
 
@@ -1107,29 +1095,6 @@ function NotificationsTab({ settings, onSave }) {
         </div>
       </div>
 
-      {/* Campus Placement Webhook */}
-      <form onSubmit={handleSaveWebhook} className="settings-form" style={{ marginTop: 28 }}>
-        <h4>Campus Discord / Slack Webhook</h4>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: 12 }}>
-          Save an HTTPS Discord or Slack webhook endpoint to your account's alert preferences.
-        </p>
-        <div className="form-group">
-          <div className="input-wrap">
-            <Code2 size={16} className="input-icon" />
-            <input
-              type="url"
-              placeholder="https://discord.com/api/webhooks/..."
-              value={webhook}
-              onChange={(e) => setWebhook(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="form-actions">
-          <LiquidButton variant="cyan" size="sm" type="submit">
-            Save Webhook URL
-          </LiquidButton>
-        </div>
-      </form>
     </motion.div>
   );
 }

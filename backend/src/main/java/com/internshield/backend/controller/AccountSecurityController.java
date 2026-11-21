@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -36,12 +35,11 @@ public class AccountSecurityController {
             "scamAlertsEmail", true,
             "weeklyThreatDigest", true,
             "communityAlerts", true,
-            "discordWebhook", "",
             "apiKey", "");
     private static final Set<String> SETTING_KEYS = DEFAULT_SETTINGS.keySet();
     private static final Set<String> PREFERENCE_KEYS = Set.of(
             "incognitoVerification", "telemetrySharing", "scamAlertsEmail",
-            "weeklyThreatDigest", "communityAlerts", "discordWebhook", "apiKey");
+            "weeklyThreatDigest", "communityAlerts", "apiKey");
 
     private final UserRepository users;
     private final UserSessionService sessions;
@@ -72,9 +70,6 @@ public class AccountSecurityController {
 
         Map<String, Object> merged = settingsFor(user);
         merged.putAll(updates);
-        if (!validWebhook(merged.get("discordWebhook"))) {
-            return error(400, "Enter a valid HTTPS webhook URL.");
-        }
         try {
             user.setSettingsJson(objectMapper.writeValueAsString(merged));
             users.save(user);
@@ -168,16 +163,6 @@ public class AccountSecurityController {
         }
         result.put("twoFactorEnabled", user.isTwoFactorEnabled());
         return result;
-    }
-
-    private static boolean validWebhook(Object value) {
-        if (!(value instanceof String url) || url.isBlank()) return true;
-        try {
-            URI parsed = URI.create(url.trim());
-            return "https".equalsIgnoreCase(parsed.getScheme()) && parsed.getHost() != null;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
     }
 
     private String currentSessionId(HttpServletRequest request) {
