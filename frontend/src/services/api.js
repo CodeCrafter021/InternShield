@@ -45,20 +45,34 @@ export function warmUpBackend() {
   if (Date.now() - lastHealthyAt < 5 * 60 * 1000) return Promise.resolve(true);
   if (warmUpPromise) return warmUpPromise;
 
-  warmUpPromise = fetch(`${API_BASE_URL}/health`, {
-    method: "GET",
-    mode: "cors",
-    cache: "no-store",
-    keepalive: true,
-  })
-    .then((res) => {
-      if (res.ok) lastHealthyAt = Date.now();
-      return res.ok;
-    })
-    .catch(() => false)
-    .finally(() => {
-      warmUpPromise = null;
-    });
+  warmUpPromise = (async () => {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 180000) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      try {
+        const res = await fetch(`${API_BASE_URL}/health`, {
+          method: "GET",
+          mode: "cors",
+          cache: "no-store",
+          signal: ctrl.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          lastHealthyAt = Date.now();
+          return true;
+        }
+      } catch {
+        // Render may still be starting the Spring Boot instance.
+      } finally {
+        clearTimeout(timer);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+    return false;
+  })().finally(() => {
+    warmUpPromise = null;
+  });
 
   return warmUpPromise;
 }
@@ -69,30 +83,15 @@ export function warmUpBackend() {
 // a one-time login code or a password to it.
 export async function waitForBackend({ maxWaitMs = 180000, onWaiting } = {}) {
   if (Date.now() - lastHealthyAt < 5 * 60 * 1000) return true; // answered recently
-  const start = Date.now();
-  let notified = false;
-  while (Date.now() - start < maxWaitMs) {
-    let timer;
-    try {
-      const ctrl = new AbortController();
-      timer = setTimeout(() => ctrl.abort(), 8000);
-      const res = await fetch(`${API_BASE_URL}/health`, { signal: ctrl.signal });
-      if (res.ok) {
-        lastHealthyAt = Date.now();
-        return true;
-      }
-    } catch {
-      /* still starting up */
-    } finally {
-      clearTimeout(timer);
-    }
-    if (!notified && onWaiting) {
-      notified = true;
-      onWaiting();
-    }
-    await new Promise((r) => setTimeout(r, 4000));
+  let waitingTimer;
+  if (onWaiting) waitingTimer = setTimeout(onWaiting, 750);
+  try {
+    const warming = warmUpBackend();
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(false), maxWaitMs));
+    return await Promise.race([warming, timeout]);
+  } finally {
+    clearTimeout(waitingTimer);
   }
-  return false;
 }
 
 export default api;
